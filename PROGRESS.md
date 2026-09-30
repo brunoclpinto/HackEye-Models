@@ -5,8 +5,39 @@ tracks what's actually been done and the exact next step, so a fresh session
 can resume without re-deriving context.
 
 Last updated: 2026-09-30, after completing all pre-training verification
-steps and the real-data smoke-train gate. **Next: A/B step (PLAN.md step 5),
-then the full 100-epoch run.**
+steps, the real-data smoke-train gate, and discovering + fixing a batch-size
+problem that was silently doubling wall-clock. **Next: restart the A/B grid
+(PLAN.md step 5) with the now-fixed `batch=8` default.**
+
+## Batch size: original plan's estimate was wrong, fixed 2026-09-30
+
+First real A/B run (`ab-ade20k-clspw0`, full dataset) hit a real `CUDA out
+of memory` at the then-default `batch=16` and Ultralytics auto-retried at
+`batch=8` — which worked, but wasn't the deliberate choice train_semantic.py
+was using, and cost real time re-discovering. Stopped it after ~1h (was 37%
+into epoch 3/10) to fix properly rather than let all 4 A/B configs pay the
+same OOM-retry tax.
+
+Tried Ultralytics' own `AutoBatch` profiler (`--batch -1`) to find a good
+number automatically instead of guessing — it was **also wrong**: estimated
+batch=30 was safe (59% GPU mem) from a synthetic forward/backward profile,
+then itself hit real OOMs at 30 and at 15 before settling on 7. AutoBatch's
+synthetic profile apparently doesn't capture the real augmentation pipeline,
+aux head, dice loss, or other real-training-step overhead closely enough to
+be trusted here.
+
+**Fix:** `train_semantic.py --batch` default changed from 16 → **8**, the
+number already proven stable across multiple real epochs on the full
+18,000-image dataset (12.1GB / 15.9GB, comfortable headroom). See
+`PLAN.md`'s VRAM/wall-clock sections (also corrected) for the numbers.
+
+**Consequence — this pushes the full 100-epoch run's estimated wall-clock
+from ~6-9h to ~38-42h**, since throughput is roughly halved from the
+original batch=16 assumption. Flagged to the user 2026-09-30: decided to
+accept this and proceed as-is (A/B restarted at `batch=8`, ~15-16h
+background run) rather than delay to chase more speed first. Revisit
+full-run wall-clock (imgsz, gradient accumulation, etc.) after A/B results
+are in, if it still matters at that point.
 
 ## Environment
 

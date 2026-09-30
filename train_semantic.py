@@ -3,7 +3,19 @@
 Defaults match the plan doc's recommended config for a single RTX 5060 Ti
 (16GB): imgsz=640 scalar (training imgsz must be scalar -- a tuple is
 silently collapsed to max(imgsz) by check_imgsz(..., max_dim=1), verified
-against ultralytics 8.4.167's engine/trainer.py), batch=16, amp on.
+against ultralytics 8.4.167's engine/trainer.py), amp on.
+
+batch defaults to 8, NOT PLAN.md's original recommendation of 16 -- that
+estimate (~7-9GB at batch=16) turned out wrong against the real 124-class
+model + full augmentation pipeline: batch=16 hit a real CUDA OOM (confirmed
+directly, not estimated), and even Ultralytics' own AutoBatch profiler
+(`--batch -1`) was too optimistic -- it estimated 30 was safe from a
+synthetic forward/backward profile, then still OOM'd for real at 30 and 15
+before settling at 7. batch=8 was verified stable across multiple real
+epochs on the full dataset at 12.1/15.9GB, comfortable headroom. Pass
+`--batch -1` to re-run AutoBatch if the model/imgsz/dataset changes enough
+that this number might be stale -- just don't trust its estimate without a
+real multi-epoch run behind it.
 
 cls_pw defaults to 1.0, NOT the Ultralytics default of 0.0. At 0.0, class
 weighting is skipped entirely (confirmed by reading
@@ -91,7 +103,10 @@ def main() -> None:
                      help="warm-start checkpoint; yolo26s-sem.pt (Cityscapes-19) is the A/B alternative")
     ap.add_argument("--epochs", type=int, default=100)
     ap.add_argument("--imgsz", type=int, default=640, help="scalar only -- see module docstring")
-    ap.add_argument("--batch", type=int, default=16)
+    ap.add_argument("--batch", type=int, default=8,
+                     help="8 is verified stable on a 16GB card; -1 triggers ultralytics "
+                          "AutoBatch, which has been observed to be too optimistic here -- "
+                          "see module docstring")
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--cls-pw", type=float, default=1.0)
     ap.add_argument("--amp", dest="amp", action="store_true", default=True)

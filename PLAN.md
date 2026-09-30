@@ -204,24 +204,37 @@ bounded (~35× max ratio), so this isn't a stability risk.
   settings/weights cache, which evaporates on container exit. **Observed
   directly** when first probing the image.
 
-### VRAM (estimates — validate on the real run)
+### VRAM — **original estimates were wrong, corrected 2026-09-30 against real runs**
 
-| imgsz | batch | est. peak | verdict |
+| imgsz | batch | measured peak | verdict |
 |---|---|---|---|
-| 640 | 16 | ~7–9 GB | **recommended start** |
-| 768 | 16 | ~10–13 GB | probably fits |
-| 1024 | 8 | ~11–14 GB | fits |
-| 1024 | 16 | ~20+ GB | will not fit |
+| 640 | 16 | OOM (real, not estimated) | **does not fit** |
+| 640 | 8 | 12.1 GB / 15.9 GB | **verified stable, current default** |
 
-Card is a single RTX 5060 Ti, 16GB. Drop batch before dropping imgsz if more
-resolution is needed; keep `batch >= 8`.
+The original table below this line was a pre-verification guess (~7-9GB at
+batch=16) — wrong. Confirmed directly: batch=16 hits a real CUDA OOM on the
+full 124-class model with the full augmentation pipeline, and even
+Ultralytics' own AutoBatch profiler (`--batch -1`) is too optimistic here —
+it estimated batch=30 was safe from a synthetic forward/backward pass, then
+itself OOM'd for real at 30 and 15 before landing on 7. batch=8 is the
+verified-stable number (`train_semantic.py`'s default), confirmed across
+multiple real epochs on the full dataset. Don't re-trust AutoBatch's number
+without a real multi-epoch run behind it if this ever gets re-probed.
 
-### Wall-clock
+Card is a single RTX 5060 Ti, 16GB. Drop imgsz before trying to push batch
+back toward 16 if more speed is needed.
 
-**~3–5 min/epoch → ~6–9 hours for 100 epochs** (an overnight run) at
-`imgsz=640`, pre-resized to short-side 768. Offline resizing is roughly a 5×
-speedup over training at native resolution (which would be 25–50 hours) — the
-single highest-leverage decision in this plan.
+### Wall-clock — **revised down from the original estimate, see above**
+
+At the verified `batch=8` (not the originally planned 16), throughput is
+~1.6-1.7 it/s over 2250 iterations/epoch (18,000 train images / batch 8) →
+**~23-25 min/epoch → ~38-42 hours for 100 epochs**, roughly double the
+original ~6-9h estimate, which assumed batch=16 would fit (it doesn't — see
+VRAM section above). This is a multi-day background run, not an overnight
+one, unless a way to safely raise the batch size (e.g. dropping imgsz, or
+gradient accumulation) is found first. Offline resizing to short-side 768 is
+still a ~5x speedup over native resolution regardless of batch size — still
+the single highest-leverage decision in this plan.
 
 ## Verification
 
