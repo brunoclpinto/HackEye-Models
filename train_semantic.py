@@ -107,7 +107,14 @@ def main() -> None:
                      help="8 is verified stable on a 16GB card; -1 triggers ultralytics "
                           "AutoBatch, which has been observed to be too optimistic here -- "
                           "see module docstring")
-    ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--workers", type=int, default=4,
+                     help="each DataLoader worker forks and ends up holding its own real "
+                          "copy of the dataset's cached path/label lists (observed ~2.5GB "
+                          "RSS/worker on the full 18k-image dataset -- a known PyTorch "
+                          "multiprocessing copy-on-write pitfall, not specific to this "
+                          "pipeline). 8 was overkill for batch=8 and, combined with "
+                          "leftover workers across epoch boundaries, pushed real host RAM "
+                          "usage into swap on a 30GB box. 4 is plenty to keep batch=8 fed.")
     ap.add_argument("--cls-pw", type=float, default=1.0)
     ap.add_argument("--amp", dest="amp", action="store_true", default=True)
     ap.add_argument("--no-amp", dest="amp", action="store_false")
