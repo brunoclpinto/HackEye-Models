@@ -1,0 +1,8 @@
+# Floor-pinned to the version the semantic task ('yolo26s-sem', 'task=semantic',
+# Results.semantic_mask, cls_pw, masks_dir dataset format) was verified against
+# by directly reading the installed package source -- see the plan doc.
+ultralytics>=8.4.167
+opencv-python-headless>=4.10
+numpy>=1.26
+pillow>=11.0
+pyyaml>=6.0

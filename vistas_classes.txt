@@ -1,0 +1,131 @@
+Generated from /home/megabeast/datasets/vistas-raw/config_v2.0.json via:
+  python3 -c "from vistas_config import load_taxonomy; ..." (see PROGRESS.md)
+Regenerate any time the config changes -- this is a point-in-time reference,
+not authoritative (config_v2.0.json is authoritative).
+
+  id  short name                      full hierarchical name                         void?
+-----------------------------------------------------------------------------------------------
+   0  animal bird                     animal--bird                                   
+   1  animal ground-animal            animal--ground-animal                          
+   2  barrier ambiguous               construction--barrier--ambiguous               VOID
+   3  barrier concrete-block          construction--barrier--concrete-block          
+   4  barrier curb                    construction--barrier--curb                    
+   5  barrier fence                   construction--barrier--fence                   
+   6  barrier guard-rail              construction--barrier--guard-rail              
+   7  barrier other-barrier           construction--barrier--other-barrier           
+   8  barrier road-median             construction--barrier--road-median             
+   9  barrier road-side               construction--barrier--road-side               
+  10  barrier separator               construction--barrier--separator               
+  11  barrier temporary               construction--barrier--temporary               
+  12  barrier wall                    construction--barrier--wall                    
+  13  flat bike-lane                  construction--flat--bike-lane                  
+  14  flat crosswalk-plain            construction--flat--crosswalk-plain            
+  15  flat curb-cut                   construction--flat--curb-cut                   
+  16  flat driveway                   construction--flat--driveway                   
+  17  flat parking                    construction--flat--parking                    
+  18  flat parking-aisle              construction--flat--parking-aisle              
+  19  flat pedestrian-area            construction--flat--pedestrian-area            
+  20  flat rail-track                 construction--flat--rail-track                 
+  21  flat road                       construction--flat--road                       
+  22  flat road-shoulder              construction--flat--road-shoulder              
+  23  flat service-lane               construction--flat--service-lane               
+  24  flat sidewalk                   construction--flat--sidewalk                   
+  25  flat traffic-island             construction--flat--traffic-island             
+  26  structure bridge                construction--structure--bridge                
+  27  structure building              construction--structure--building              
+  28  structure garage                construction--structure--garage                
+  29  structure tunnel                construction--structure--tunnel                
+  30  person individual               human--person--individual                      
+  31  person person-group             human--person--person-group                    VOID
+  32  rider bicyclist                 human--rider--bicyclist                        
+  33  rider motorcyclist              human--rider--motorcyclist                     
+  34  rider other-rider               human--rider--other-rider                      
+  35  marking--continuous--dashed     marking--continuous--dashed                    
+  36  continuous solid                marking--continuous--solid                     
+  37  continuous zigzag               marking--continuous--zigzag                    
+  38  discrete ambiguous              marking--discrete--ambiguous                   VOID
+  39  arrow left                      marking--discrete--arrow--left                 
+  40  arrow other                     marking--discrete--arrow--other                
+  41  arrow right                     marking--discrete--arrow--right                
+  42  arrow split-left-or-straight    marking--discrete--arrow--split-left-or-straight  
+  43  arrow split-right-or-straight   marking--discrete--arrow--split-right-or-straight  
+  44  arrow straight                  marking--discrete--arrow--straight             
+  45  marking--discrete--crosswalk-zebra  marking--discrete--crosswalk-zebra             
+  46  discrete give-way-row           marking--discrete--give-way-row                
+  47  discrete give-way-single        marking--discrete--give-way-single             
+  48  hatched chevron                 marking--discrete--hatched--chevron            
+  49  hatched diagonal                marking--discrete--hatched--diagonal           
+  50  marking--discrete--other-marking  marking--discrete--other-marking               
+  51  discrete stop-line              marking--discrete--stop-line                   
+  52  symbol bicycle                  marking--discrete--symbol--bicycle             
+  53  symbol other                    marking--discrete--symbol--other               
+  54  marking--discrete--text         marking--discrete--text                        
+  55  marking-only--continuous--dashed  marking-only--continuous--dashed               
+  56  marking-only--discrete--crosswalk-zebra  marking-only--discrete--crosswalk-zebra        
+  57  marking-only--discrete--other-marking  marking-only--discrete--other-marking          
+  58  marking-only--discrete--text    marking-only--discrete--text                   
+  59  nature mountain                 nature--mountain                               
+  60  nature sand                     nature--sand                                   
+  61  nature sky                      nature--sky                                    
+  62  nature snow                     nature--snow                                   
+  63  nature terrain                  nature--terrain                                
+  64  nature vegetation               nature--vegetation                             
+  65  nature water                    nature--water                                  
+  66  object banner                   object--banner                                 
+  67  object bench                    object--bench                                  
+  68  object bike-rack                object--bike-rack                              
+  69  object catch-basin              object--catch-basin                            
+  70  object cctv-camera              object--cctv-camera                            
+  71  object fire-hydrant             object--fire-hydrant                           
+  72  object junction-box             object--junction-box                           
+  73  object mailbox                  object--mailbox                                
+  74  object manhole                  object--manhole                                
+  75  object parking-meter            object--parking-meter                          
+  76  object phone-booth              object--phone-booth                            
+  77  object pothole                  object--pothole                                
+  78  sign advertisement              object--sign--advertisement                    
+  79  sign ambiguous                  object--sign--ambiguous                        VOID
+  80  sign back                       object--sign--back                             
+  81  sign information                object--sign--information                      
+  82  sign other                      object--sign--other                            
+  83  sign store                      object--sign--store                            
+  84  object street-light             object--street-light                           
+  85  support pole                    object--support--pole                          
+  86  support pole-group              object--support--pole-group                    VOID
+  87  support traffic-sign-frame      object--support--traffic-sign-frame            
+  88  support utility-pole            object--support--utility-pole                  
+  89  object traffic-cone             object--traffic-cone                           
+  90  traffic-light general-single    object--traffic-light--general-single          
+  91  traffic-light pedestrians       object--traffic-light--pedestrians             
+  92  traffic-light general-upright   object--traffic-light--general-upright         
+  93  traffic-light general-horizontal  object--traffic-light--general-horizontal      
+  94  traffic-light cyclists          object--traffic-light--cyclists                
+  95  traffic-light other             object--traffic-light--other                   
+  96  traffic-sign ambiguous          object--traffic-sign--ambiguous                VOID
+  97  traffic-sign back               object--traffic-sign--back                     
+  98  traffic-sign direction-back     object--traffic-sign--direction-back           
+  99  traffic-sign direction-front    object--traffic-sign--direction-front          
+ 100  traffic-sign front              object--traffic-sign--front                    
+ 101  traffic-sign information-parking  object--traffic-sign--information-parking      
+ 102  traffic-sign temporary-back     object--traffic-sign--temporary-back           
+ 103  traffic-sign temporary-front    object--traffic-sign--temporary-front          
+ 104  object trash-can                object--trash-can                              
+ 105  vehicle bicycle                 object--vehicle--bicycle                       
+ 106  vehicle boat                    object--vehicle--boat                          
+ 107  vehicle bus                     object--vehicle--bus                           
+ 108  vehicle car                     object--vehicle--car                           
+ 109  vehicle caravan                 object--vehicle--caravan                       
+ 110  vehicle motorcycle              object--vehicle--motorcycle                    
+ 111  vehicle on-rails                object--vehicle--on-rails                      
+ 112  vehicle other-vehicle           object--vehicle--other-vehicle                 
+ 113  vehicle trailer                 object--vehicle--trailer                       
+ 114  vehicle truck                   object--vehicle--truck                         
+ 115  vehicle vehicle-group           object--vehicle--vehicle-group                 VOID
+ 116  vehicle wheeled-slow            object--vehicle--wheeled-slow                  
+ 117  object water-valve              object--water-valve                            
+ 118  void car-mount                  void--car-mount                                
+ 119  void dynamic                    void--dynamic                                  
+ 120  void ego-vehicle                void--ego-vehicle                              
+ 121  void ground                     void--ground                                   
+ 122  void static                     void--static                                   
+ 123  void unlabeled                  void--unlabeled                                VOID

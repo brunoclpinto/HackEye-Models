@@ -206,3 +206,12 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 .DS_Store
+
+# Training runtime artifacts — checkpoints and run outputs are large,
+# regenerable, and have no business in git history. Datasets live outside
+# this repo entirely (see PROGRESS.md) so there's nothing dataset-related
+# to ignore here.
+weights/
+runs/
+*.pt
+*.cache
