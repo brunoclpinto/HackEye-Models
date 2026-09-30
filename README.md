@@ -1,29 +1,10 @@
-# YOLO-MEyes
-Yolo training for MEyes app.
+# HackEye-Models
+YOLO training for the HackEye app.
 
 ## Setup
-I'm developing this on a mac and using Conda, you're free to use anything else.
-All is documented in Jupyter notebooks (installation is on your hands mate).
-Here are the instructions to create the dev env.
+I'm developing this on a mac. Not using Jupyter notebooks for now — setup and training will run in Docker.
 
-### Create it
-```
-conda create --name yolo-meyes
-```
-
-### Jupyter notebook kernel
-```
-conda install -y ipykernel
-python -m ipykernel install --user --name yolo-meyes --display-name "YOLO for MEyes"
-```
-
-### Install PyTorch and Ultralytics
-```
-python -m pip install -U pip                                                                                  
-python -m pip install torch torchvision torchaudio lxml requests pillow pyyaml matplotlib
-python -m pip install -U ultralytics
-
-```
+Docker setup instructions TBD.
 
 ## Datasets
 ### Bus
