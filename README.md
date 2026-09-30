@@ -16,8 +16,8 @@ https://storage.googleapis.com/openimages/web/visualizer/index.html?type=detecti
 
 ##### Get Bus dataset
 Loaded the entire page, navigated till the end and made sure all images got loaded correctly along the way.
-On chrome, inspected first image, navigated to a top level div that contains all the dataset and copy pasted into `Datasets/openImagesV7-Bus.md`. Did this for both URIs.
-Now lets process it so it matches YOLO requirements, follow along 
+On chrome, inspected first image, navigated to a top level div that contains all the dataset and copy pasted the raw HTML locally. Did this for both URIs.
+Still need to process this so it matches YOLO requirements — TBD now that processing is moving to Docker instead of a notebook.
 
 
 #### Cityscapes
