@@ -4,15 +4,15 @@
 tracks what's actually been done and the exact next step, so a fresh session
 can resume without re-deriving context.
 
-Last updated: 2026-10-03. **A/B grid decided — ADE20K init + `cls_pw=0.0`
-(config 1) wins.** Config 4 (Cityscapes + `cls_pw=1.0`) was stopped
-deliberately before completion — see verdict below, the user judged
-Cityscapes disqualified on 3 configs' worth of evidence and didn't need the
-4th to confirm it. **The full 100-epoch run is in progress, nearly done**
+Last updated: 2026-10-03. **TRAINING COMPLETE.** The full 100-epoch run
 (`--model yolo26s-sem-ade20k.pt --cls-pw 0.0 --batch 8 --workers 5
---no-plots --epochs 100 --name vistas124-s-640`).
-**Next: let it finish, then run the final evaluation — see PLAN.md step 6
-and the eval plan discussed in-session.**
+--no-plots --epochs 100 --name vistas124-s-640`) finished cleanly, exit code
+0, no crashes across the full ~44h run. Final evaluation run against
+`best.pt` — see "FINAL EVALUATION RESULTS" section below for the numbers.
+**Next: the deferred dataset/runs-into-repo move (see TODO at bottom) is now
+unblocked; otherwise this training phase is done. The curb/curb-cut
+fine-tuning pass (deferred, see memory: higher-res-crop-finetuning-for-curb)
+is the natural next phase of the project when picked back up.**
 
 **Repo reorganized into folders 2026-10-03** (see PLAN.md's Layout section)
 — scripts moved under `docker/`, `training/`, `datasets/vistas/conversion/`,
@@ -25,6 +25,71 @@ container (already running, keeps its files loaded in memory regardless of
 on-disk moves) or the external `/datasets`/`/runs` mounts, which are
 staying external until this run finishes (deferred, see TODO at the bottom
 of this file).
+
+## FINAL EVALUATION RESULTS (2026-10-03)
+
+Ran against `best.pt` (which, by end of training, coincided with the final
+epoch 100 checkpoint — `best.pt`/`last.pt` are byte-identical, same
+timestamp, since mIoU peaked right at the end):
+
+```bash
+docker compose run --rm train training/eval_semantic.py \
+  --weights /runs/vistas124-s-640/weights/best.pt \
+  --data /datasets/vistas-yolo/vistas-v2.0.yaml \
+  --target-keywords "flat road,flat sidewalk,bike-lane,pedestrian-area,crosswalk-plain,marking--discrete--crosswalk-zebra,flat parking,service-lane,rail-track,traffic-island,curb" \
+  --out-csv /runs/eval-final/full_124class_summary.csv \
+  --project /runs --name eval-final
+```
+
+**Headline**: mIoU 0.3197, pixel_acc 0.8957 (116/124 classes present in val
+GT). Matches PLAN.md's calibration note (high-20s to mid-30s expected for a
+~10M-param model) — not the real acceptance criterion, see below.
+
+**Priority-1 classes** (the actual acceptance criterion, per
+[[priority-broad-navigable-classes]]), sorted by IoU:
+
+| class | IoU | pixel_acc |
+|---|---|---|
+| flat road | 0.867 | 0.942 |
+| marking--discrete--crosswalk-zebra | 0.700 | 0.824 |
+| flat sidewalk | 0.662 | 0.808 |
+| flat rail-track | 0.498 | 0.727 |
+| flat parking-aisle | 0.471 | 0.519 |
+| flat service-lane | 0.456 | 0.660 |
+| flat pedestrian-area | 0.433 | 0.528 |
+| flat crosswalk-plain | 0.424 | 0.591 |
+| flat bike-lane | 0.400 | 0.586 |
+| flat traffic-island | 0.359 | 0.468 |
+| flat road-shoulder | 0.289 | 0.464 |
+| flat parking | 0.207 | 0.279 |
+
+**Average IoU across these 12 classes: ~0.480** — well above the headline
+0.32, confirming the headline number was being dragged down by the long
+tail of rare classes, not the ones that matter for this project. Road and
+sidewalk, the two most safety-critical for navigation, are the strongest
+performers.
+
+**Curb/curb-cut** (deliberately deprioritized this round, reference only):
+`barrier curb` 0.538 IoU, `flat curb-cut` 0.204 IoU — meaningfully weaker
+than the priority classes, confirms the need for the already-planned
+dedicated fine-tuning pass.
+
+**Confusion matrix findings worth keeping:**
+- `flat road` is very clean: 96.6% of its GT pixels predicted correctly.
+- `flat parking` (weakest priority class, 0.207 IoU) is predicted as
+  `flat road` 54.3% of the time; `flat parking-aisle` similarly 32.5% as
+  road. The model is treating parking areas as generic driveable surface
+  rather than a distinct category — not surprising given visual similarity,
+  worth knowing if parking-area precision ever matters downstream.
+- `barrier curb`: 75.7% correct, but 11.5% misclassified as road and 7.0%
+  as sidewalk — the classic boundary-confusion pattern. `eval_semantic.py`'s
+  own built-in note on this: "if curb -> sidewalk/road dominates, the model
+  sees the boundary region but can't localize the transition -- that argues
+  for higher --imgsz, not more epochs." Directly supports the already-saved
+  higher-res-crop-finetuning-for-curb memory/plan for the next phase.
+- Full 124-class CSV saved at `/runs/eval-final/full_124class_summary.csv`
+  and prediction/label overlay images at `/runs/eval-final/results/` for
+  anyone wanting to look beyond this summary.
 
 ## If it crashes / needs to stop: how to resume
 
