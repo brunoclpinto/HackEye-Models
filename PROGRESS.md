@@ -4,10 +4,237 @@
 tracks what's actually been done and the exact next step, so a fresh session
 can resume without re-deriving context.
 
-Last updated: 2026-09-30, after completing all pre-training verification
-steps, the real-data smoke-train gate, and discovering + fixing a batch-size
-problem that was silently doubling wall-clock. **Next: restart the A/B grid
-(PLAN.md step 5) with the now-fixed `batch=8` default.**
+Last updated: 2026-10-01. **A/B grid decided — ADE20K init + `cls_pw=0.0`
+(config 1) wins.** Config 4 (Cityscapes + `cls_pw=1.0`) was stopped
+deliberately before completion — see verdict below, the user judged
+Cityscapes disqualified on 3 configs' worth of evidence and didn't need the
+4th to confirm it. **The full 100-epoch run is now in progress**
+(`--model yolo26s-sem-ade20k.pt --cls-pw 0.0 --batch 8 --workers 5
+--no-plots --epochs 100 --name vistas124-s-640`), estimated ~38-42h.
+**Next: just let it run — see "If it crashes / needs to stop" below for
+the resume procedure if that's ever needed.**
+
+## If it crashes / needs to stop: how to resume
+
+`train_semantic.py` now has a `--resume` flag (added 2026-10-01, before
+starting the full run, specifically so a crash/power-loss/manual stop on a
+~40h run doesn't lose real progress). To resume:
+
+```bash
+docker compose run --rm train train_semantic.py \
+  --resume /runs/vistas124-s-640/weights/last.pt
+```
+
+That's the *entire* command — `--resume` ignores all other flags and
+restores the original run's full config (data, epochs, cls_pw, etc.) from
+the checkpoint's own saved args, continuing from the last completed epoch
+with optimizer/scheduler/EMA state intact (verified against Ultralytics'
+own `check_resume()`/`resume_training()` source, not just the docs).
+
+`last.pt` is overwritten every epoch regardless of `--save-period` (only
+`best.pt` and the periodic numbered snapshots depend on that setting), so
+**at most one epoch's progress (~20-25 min at this run's pace) is ever at
+risk** from an unclean stop. To deliberately pause: `docker stop
+<container-name>` (or `Ctrl-C` on a foreground run) is safe at any point —
+the resume command above picks it back up regardless of exactly when it
+stopped.
+
+## FINAL verdict: ADE20K init + cls_pw=0.0
+
+| class | ADE20K, cls_pw=0 | ADE20K, cls_pw=1 | Cityscapes, cls_pw=0 |
+|---|---|---|---|
+| flat road | **0.836** | 0.783 | 0.825 |
+| flat sidewalk | **0.604** | 0.574 | 0.570 |
+| crosswalk-zebra | **0.579** | 0.523 | 0.545 |
+| flat pedestrian-area | **0.475** | 0.369 | 0.363 |
+| flat service-lane | **0.414** | 0.381 | 0.379 |
+| flat bike-lane | **0.375** | 0.338 | 0.298 |
+| flat rail-track | **0.372** | 0.346 | 0.238 |
+| flat traffic-island | **0.235** | 0.232 | 0.195 |
+| flat road-shoulder | 0.154 | **0.171** | 0.152 |
+| flat crosswalk-plain | 0.145 | **0.221** | 0.020 |
+| flat parking | 0.093 | **0.152** | 0.044 |
+| flat parking-aisle | 0.0 | **0.162** | 0.0 |
+| overall mIoU | 0.233 | **0.236** | 0.187 |
+| overall pixel_acc | **0.876** | 0.846 | 0.870 |
+
+Config 4 (Cityscapes, `cls_pw=1.0`) was stopped ~5 minutes in, deliberately
+— **user's call**: Cityscapes' fundamental limitation is its narrow
+19-class taxonomy, which makes any checkpoint pretrained on it too
+specialized/biased for a 124-class target taxonomy as diverse as Vistas',
+regardless of `cls_pw`. Three configs' worth of evidence (Cityscapes
+trailing ADE20K by wide margins on nearly every priority class at
+`cls_pw=0`) was judged sufficient to rule it out without needing to see
+`cls_pw=1.0` applied to the same weak checkpoint.
+
+**Decided: ADE20K init + `cls_pw=0.0`** (config 1) — best or tied-best on
+8 of 12 priority classes, including the largest margins on road, sidewalk,
+and pedestrian-area, plus the best overall pixel accuracy.
+
+## Crash root cause: CONFIRMED FIXED
+
+Config 2 (`ab-ade20k-clspw1`) crashed twice at `--workers 6/8` with default
+plotting on, then **completed cleanly** on a third attempt at
+`--workers 5 --no-plots`, running well past the wall-clock point (epoch
+8's validation) where it previously died, with swap staying completely flat
+(908MB, unchanged) the entire ~4.3h run. This confirms the matplotlib
+plot-leak hypothesis (or at minimum, that `--no-plots` + `workers=5`
+together resolve it) well enough to trust for the remaining A/B configs.
+**Use `--batch 8 --workers 5 --no-plots` for configs 3-4 and revisit
+whether the full 100-epoch run needs plots badly enough to risk re-enabling
+them (if so, test that in isolation first rather than assuming it's safe).**
+
+Before each config launch: explicitly verify `docker ps` is empty, GPU is
+at 0MB, and swap is at baseline before starting the next one — cheap
+insurance against any cross-run contamination, even though each config
+already runs in its own fresh `docker compose run --rm` container.
+
+## cls_pw verdict (ADE20K checkpoint) — cls_pw=0.0 wins for this project's priority
+
+| class | cls_pw=0 | cls_pw=1 | diff |
+|---|---|---|---|
+| flat road | 0.836 | 0.783 | −0.053 |
+| flat sidewalk | 0.604 | 0.574 | −0.030 |
+| crosswalk-zebra | 0.579 | 0.523 | −0.056 |
+| flat pedestrian-area | 0.475 | 0.369 | −0.106 |
+| flat service-lane | 0.414 | 0.381 | −0.033 |
+| flat bike-lane | 0.375 | 0.338 | −0.037 |
+| flat rail-track | 0.372 | 0.346 | −0.026 |
+| flat traffic-island | 0.235 | 0.232 | ~tied |
+| flat road-shoulder | 0.154 | 0.171 | +0.017 |
+| flat crosswalk-plain | 0.145 | 0.221 | +0.076 |
+| flat parking | 0.093 | 0.152 | +0.059 |
+| flat parking-aisle | 0.0 | 0.162 | +0.162 |
+| overall mIoU | 0.233 | 0.236 | ~tied |
+| overall pixel_acc | 0.876 | 0.846 | −0.030 |
+
+`cls_pw=1.0` wins on overall mIoU and on several rare classes (parking,
+parking-aisle, crosswalk-plain) but loses on nearly every priority-1 class
+(road, sidewalk, pedestrian-area, bike-lane, service-lane, rail-track).
+Given the project's stated priority (broad navigable classes over rare
+ones), `cls_pw=0.0` is the clear choice **for the ADE20K checkpoint**. Still
+need the Cityscapes-init comparison (configs 3-4) to see if this holds for
+that checkpoint too, and to settle the checkpoint question itself.
+
+## A/B priority reframing (see memory: priority-broad-navigable-classes)
+
+Per explicit user direction 2026-09-30, this A/B round (and the eventual
+full run) is judged on IoU for broad navigable classes (`road`, `sidewalk`,
+`bike-lane`, `pedestrian-area`, `crosswalk-plain`/`crosswalk-zebra`,
+`parking`/`parking-aisle`, `road-shoulder`, `service-lane`, `rail-track`,
+`traffic-island`) — **not** curb/curb-cut, which is a deliberately deferred
+later fine-tuning pass. PLAN.md step 5's text is stale on this point; treat
+this file and the saved memory as authoritative.
+
+## A/B results so far
+
+**Config 1/4 — `ab-ade20k-clspw0`** (ADE20K init, `cls_pw=0.0`, batch=8,
+workers=6, 10 epochs, full dataset): **completed cleanly.**
+Overall mIoU 0.233, pixel_acc 0.876.
+
+| class | IoU | pixel acc |
+|---|---|---|
+| flat road | 0.836 | 0.935 |
+| flat sidewalk | 0.604 | 0.783 |
+| crosswalk-zebra | 0.579 | 0.739 |
+| flat pedestrian-area | 0.475 | 0.649 |
+| flat service-lane | 0.414 | 0.598 |
+| flat bike-lane | 0.375 | 0.558 |
+| flat rail-track | 0.372 | 0.511 |
+| flat traffic-island | 0.235 | 0.299 |
+| flat road-shoulder | 0.154 | 0.214 |
+| flat crosswalk-plain | 0.145 | 0.182 |
+| flat parking | 0.093 | 0.111 |
+| flat parking-aisle | 0.0 | 0.0 (only 25 val images, low support) |
+
+**Config 2/4 — `ab-ade20k-clspw1`**: crashed twice, see below. Partial
+epoch-level trend before the 2nd crash (7/10 epochs, no final per-class
+breakdown yet): mIoU 0.123 → 0.164 → 0.189 → 0.205 → 0.218 → 0.228 → 0.232 —
+already close to config 1's full-10-epoch final mIoU after only 7 epochs,
+interesting but not conclusive without the completed run.
+
+**Configs 3-4** (`yolo26s-sem.pt` / Cityscapes init, both `cls_pw` values):
+not started yet.
+
+## Two real training crashes investigated — root causes and fixes
+
+### Crash 1 (first attempt at config 1, `--workers 8`, batch=16 default)
+
+Two-stage failure: (a) `batch=16` hit a real CUDA OOM, Ultralytics
+auto-retried at `batch=8` — already covered above (`train_semantic.py`
+`--batch` default fixed to 8). (b) Separately, the orchestration **wrapper
+script** sequencing all 4 A/B runs got killed by the harness
+("system is running low on memory") while the actual training container
+kept running fine underneath it — confirmed via `docker ps`
+(`Up N minutes`, still progressing) even after the wrapper died. Not a real
+training failure, just lost the auto-sequencing of configs 2-4. Fixed by
+switching to launching each config as its own standalone background task
+instead of one long multi-hour wrapper script, so losing one wrapper
+can't silently kill the whole chain.
+
+### Crash 2 (config 1 retry, `--workers 8` default still in effect)
+
+This one was real: the training container itself died, not just a wrapper.
+Investigated with `dmesg`/`journalctl` — **no kernel OOM-killer entry**, but
+`systemd` logged the container's cgroup scope deactivating after
+**4h14m wall-clock, 13.8G memory peak**, while the training log showed
+almost no progress for the last ~3 hours (frozen at epoch 4, iteration
+40/2250) — i.e. the process was alive but thrashing on swap, not quickly
+OOM-killed. `ps aux` at the time showed **21 processes** for a
+`--workers 8` config, way more than expected. Fixed (per explicit user
+choice) by lowering `train_semantic.py`'s `--workers` default from 8 to 4,
+on the theory that fewer persistent DataLoader workers (~2.5GB RSS each,
+a known PyTorch multiprocessing copy-on-write pitfall) would reduce
+baseline memory pressure.
+
+**Important correction after reading Ultralytics' source**: its
+`InfiniteDataLoader` (`ultralytics/data/build.py`) is explicitly designed to
+*reuse* persistent workers across epochs, not recreate them — so "workers
+leaking per-epoch" is not the precise mechanism. The 21-process count and
+the slow multi-hour memory growth have a different, still only
+partially-understood cause.
+
+### Crash 3 (config 1 clean restart at `--workers 6`, user's explicit choice)
+
+**Succeeded** — completed all 10 epochs cleanly (results above). This was
+the first fully clean run, consistent with `--workers 6` giving enough
+margin, OR just being lucky that config 1 happens to not trigger whatever
+the growth source is within one run's duration.
+
+### Crash 4 (config 2, same `--workers 6`, otherwise identical setup)
+
+**Crashed again** — but differently from crash 2: died near the *end* of
+the run (4h17m wall-clock, stuck in what looks like the final epoch's
+validation, 48% through, "13.5G memory peak" per systemd) rather than
+early-and-thrashing. Memory was fully back to normal (1.9GB used, 28GB
+available) within minutes of the kill, confirming it's this process's own
+growth, not unrelated host pressure. No kernel OOM entry this time either.
+
+**New hypothesis, not yet confirmed**: Ultralytics' plotting code
+(`ultralytics/utils/plotting.py`, verified by reading the source) defines 6
+plot functions but calls `plt.close()` in only 4 of them — a known
+matplotlib-figure-leak pattern (unclosed figures accumulate in matplotlib's
+global figure registry) that would compound specifically over *many hours
+of a long run*, matching the "dies near the end, not early" symptom better
+than a per-worker-count theory does. `train_semantic.py` hardcoded
+`plots=True`. **Fix applied**: added `--plots`/`--no-plots` CLI flag
+(default stays `True` for the eventual full run, where plots are worth
+reviewing), relaunched config 2 with `--no-plots`. **Not yet confirmed** —
+if this run also crashes, the plots theory is wrong and the real cause is
+still open. If it completes cleanly, use `--no-plots` for the remaining A/B
+configs too, and reconsider whether the full 100-epoch run should also use
+it (losing the plots would be a real cost there, so a full fix — properly
+closing figures, or periodically calling `plt.close('all')` — would be
+better than permanently disabling them if this theory confirms out).
+
+## Watch for next session
+
+If crashes keep happening even with `--no-plots`, worth trying: `--workers 2`
+(more conservative than 6), explicit `del`/`gc.collect()` calls around the
+Ultralytics validator between epochs (can't change library code easily from
+here, but could monkeypatch or file an upstream issue), or just accepting
+checkpointed/resumed runs as normal operating procedure for this box rather
+than expecting a single unattended multi-hour run to always complete.
 
 ## Batch size: original plan's estimate was wrong, fixed 2026-09-30
 

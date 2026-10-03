@@ -119,6 +119,16 @@ def main() -> None:
     ap.add_argument("--amp", dest="amp", action="store_true", default=True)
     ap.add_argument("--no-amp", dest="amp", action="store_false")
     ap.add_argument("--close-mosaic", type=int, default=10)
+    ap.add_argument("--plots", dest="plots", action="store_true", default=True)
+    ap.add_argument("--no-plots", dest="plots", action="store_false",
+                     help="skip matplotlib plot generation (confusion matrix, IoU bar chart, "
+                          "etc). Ultralytics' plotting code doesn't call plt.close() on every "
+                          "path (verified: 6 plot functions, only 4 plt.close() calls) -- "
+                          "suspected contributor to a real multi-hour memory growth observed "
+                          "on A/B runs that died near the end of a 10-epoch run despite "
+                          "healthy swap/GPU the whole way. Use this for comparison runs where "
+                          "the plots aren't needed; keep plots on for the full run where "
+                          "they're worth reviewing.")
     ap.add_argument("--optimizer", default="auto",
                      help="ultralytics optimizer name. 'auto' picks lr0=0.002*5/(4+nc) "
                           "(~7.8e-5 at nc=124) -- tuned for the full run's thousands of "
@@ -135,12 +145,28 @@ def main() -> None:
     ap.add_argument("--min-vram-gb", type=float, default=8.0)
     ap.add_argument("--strict-transfer-check", action="store_true",
                      help="exit instead of warning if the pretrained-transfer deficit is unexpected")
+    ap.add_argument("--resume", default=None,
+                     help="path to a last.pt from an interrupted run of THIS command (e.g. "
+                          "/runs/vistas124-s-640/weights/last.pt) -- continues from the last "
+                          "completed epoch with optimizer/scheduler/EMA state intact, reading "
+                          "the rest of the training config back from that run's own saved "
+                          "args.yaml. All other flags (--data, --epochs, etc.) are ignored when "
+                          "this is set. last.pt is overwritten every epoch regardless of "
+                          "--save-period, so at most one epoch's progress (~20-25min at the "
+                          "verified batch=8 pace) is ever at risk from a crash/power-loss/"
+                          "manual stop.")
     args = ap.parse_args()
 
     assert_torch_cuda()
     assert_min_vram(args.min_vram_gb)
 
     from ultralytics import YOLO
+
+    if args.resume:
+        model = YOLO(args.resume)
+        results = model.train(resume=True)
+        print(f"[train_semantic] resumed run done. results: {results}", file=sys.stderr)
+        return
 
     capture = _TransferCapture()
     logging.getLogger("ultralytics").addHandler(capture)
@@ -163,7 +189,7 @@ def main() -> None:
         project=args.project,
         name=args.name,
         save_period=args.save_period,
-        plots=True,
+        plots=args.plots,
         seed=args.seed,
         deterministic=False,
     )
