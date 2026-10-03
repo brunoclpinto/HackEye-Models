@@ -108,21 +108,36 @@ exact paths and verified counts.
 
 ### Layout
 
+**Reorganized into folders 2026-10-03** (originally flat at repo root — see
+git history if a command below looks stale relative to an older note
+elsewhere in this file):
+
 ```
 (this repo's root)
-  vistas_config.py      # parse config_v2.0.json -> names, palette, evaluate flags, void ids
-  vistas_convert.py     # converter + dataset YAML emitter
-  vistas_verify.py      # pre-training correctness checks (5 subcommands)
-  train_semantic.py     # training entrypoint
-  eval_semantic.py      # per-class IoU report
-  gpu_guard.py           # CUDA/VRAM fail-fast checks
+  docker/
+    Dockerfile           # FROM pytorch/pytorch:2.7.0-cuda12.8-cudnn9-runtime
+    compose.yaml          # build context = repo root; WORKDIR/mount = /app
+  datasets/
+    vistas/
+      conversion/
+        vistas_config.py  # parse config_v2.0.json -> names, palette, evaluate flags, void ids
+        vistas_convert.py # converter + dataset YAML emitter
+        vistas_verify.py  # pre-training correctness checks (5 subcommands)
+        vistas_classes.txt
+  training/
+    train_semantic.py     # training entrypoint
+    eval_semantic.py       # per-class IoU report
+    gpu_guard.py            # CUDA/VRAM fail-fast checks
+  models/                 # gitignored — cached checkpoints
   requirements.txt
-  Dockerfile
-  compose.yaml
-  weights/               # gitignored — cached checkpoints
-  PLAN.md                # this file
-  PROGRESS.md            # current status, read this first
+  PLAN.md                 # this file
+  PROGRESS.md             # current status, read this first
 ```
+
+Run commands from `docker/` (or pass `-f docker/compose.yaml` from the repo
+root), and invoke scripts by their path from the mounted repo root, e.g.
+`docker compose run --rm train training/train_semantic.py ...` or
+`datasets/vistas/conversion/vistas_convert.py ...`. See README.md.
 
 `Dockerfile` uses `FROM pytorch/pytorch:2.7.0-cuda12.8-cudnn9-runtime` directly
 — chosen because Blackwell (RTX 50-series, sm_120) needs CUDA 12.8+.

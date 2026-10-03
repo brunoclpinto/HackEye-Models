@@ -45,7 +45,7 @@ def main() -> None:
     ap.add_argument("--out-csv", default=None, help="optional path to write the full 124-class summary as CSV")
     ap.add_argument("--project", default="/runs",
                      help="without this, model.val() defaults to a path under the container's own "
-                          "filesystem (e.g. /training/runs/...), which is NOT the persistent runs "
+                          "filesystem (e.g. /app/runs/...), which is NOT the persistent runs "
                           "mount and vanishes when the container exits")
     ap.add_argument("--name", default="eval")
     args = ap.parse_args()

@@ -208,10 +208,13 @@ __marimo__/
 .DS_Store
 
 # Training runtime artifacts — checkpoints and run outputs are large,
-# regenerable, and have no business in git history. Datasets live outside
-# this repo entirely (see PROGRESS.md) so there's nothing dataset-related
-# to ignore here.
-weights/
-runs/
+# regenerable, and have no business in git history.
+models/
 *.pt
 *.cache
+
+# Dataset and training-run outputs currently live outside this repo
+# entirely (see PROGRESS.md and docker/compose.yaml) via bind mounts, so
+# there's nothing to ignore here yet. Once they move inside the repo
+# (planned, deferred until the current training run finishes — see
+# PROGRESS.md), add training/datasets/ and training/runs/ here.

@@ -14,19 +14,27 @@ zebra), `parking`/`parking-aisle`, `road-shoulder`, `service-lane`,
 `rail-track`, `traffic-island`. `curb`/`curb-cut` are deliberately deferred
 to a later fine-tuning pass — they're a tiny fraction of pixels per image and
 need far more iterations to get right than the broad classes do. See
-`vistas_classes.txt` for the full 124-class list.
+`datasets/vistas/conversion/vistas_classes.txt` for the full 124-class list.
 
 ## Setup
 
-Docker-based; no Jupyter notebooks. From this repo's root:
+Docker-based; no Jupyter notebooks. From `docker/` (or pass
+`-f docker/compose.yaml` from the repo root):
 
 ```bash
+cd docker
 docker compose build
-docker compose run --rm train <script>.py ...   # vistas_convert.py, vistas_verify.py, train_semantic.py, eval_semantic.py
+docker compose run --rm train <path/to/script>.py ...
+# e.g. training/train_semantic.py, training/eval_semantic.py,
+#      datasets/vistas/conversion/vistas_convert.py, .../vistas_verify.py
 ```
 
-See `Dockerfile` / `compose.yaml` and **PROGRESS.md** for exact commands,
-volume mounts, and environment (single RTX 5060 Ti, 16GB VRAM).
+The container mounts the repo root at `/app` (the build context is the repo
+root even though the Dockerfile/compose file live in `docker/`), so script
+paths are relative to the repo root, not to `docker/`. Cached checkpoint
+downloads live in `models/` (gitignored). See `docker/Dockerfile` /
+`docker/compose.yaml` and **PROGRESS.md** for exact commands, volume
+mounts, and environment (single RTX 5060 Ti, 16GB VRAM).
 
 ## Datasets
 

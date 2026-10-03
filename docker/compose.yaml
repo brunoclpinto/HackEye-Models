@@ -1,0 +1,58 @@
+# Explicit project name: without this, Compose derives it from this file's
+# containing directory ("docker"), which collides with unrelated projects
+# elsewhere on the host also named "docker" (observed directly -- caused a
+# spurious "orphan containers" warning against an unrelated postgres/app/
+# ollama/qdrant stack).
+name: hackeye-models
+
+services:
+  train:
+    build:
+      # This compose file lives in docker/, but the build needs the whole
+      # repo (requirements.txt, training/, datasets/) as context, so this
+      # points one level up at the repo root. Run `docker compose` from
+      # the repo root with `-f docker/compose.yaml`, or `cd docker &&
+      # docker compose ...` -- see README.md.
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: hackeye-train
+    working_dir: /app
+    # Same rationale as the main HackEye repo's RnD/compose.yaml: run as the
+    # host user so the thousands of files a conversion/training run writes
+    # into the bind mounts don't end up root-owned.
+    user: "${UID:-1000}:${GID:-1000}"
+    # Docker's 64MB /dev/shm default kills DataLoader workers with a silent
+    # "Bus error" once you're actually moving batches through shared memory
+    # -- inference here has always been single-process and never hit this.
+    shm_size: "8gb"
+    environment:
+      # With user:${UID}:${GID} and a root-owned $HOME in the base image,
+      # Ultralytics falls back to writing its settings/weights cache under
+      # /tmp (observed directly: "user config directory '/root/.config/
+      # Ultralytics' is not writable"). That evaporates on container exit,
+      # silently losing run settings and any auto-downloaded weights
+      # (e.g. the yolo26n.pt check_amp() fetches). Point it at the runs
+      # mount instead. NOTE: the target directory must exist in the mount
+      # before first use (Ultralytics doesn't mkdir -p its full config path)
+      # -- see PROGRESS.md's "Crash root cause" section for the one-time fix.
+      YOLO_CONFIG_DIR: /runs/ultralytics-cfg
+    volumes:
+      # Repo root (one level up from this file) mounted at /app, matching
+      # the Dockerfile's WORKDIR. Invoke scripts by their path from here,
+      # e.g. `training/train_semantic.py`, `datasets/vistas/conversion/vistas_convert.py`.
+      - ..:/app
+      # Vistas is tens of GB and currently lives outside the repo entirely --
+      # override these if your dataset/runs live somewhere other than the
+      # default. DEFERRED TODO (see PROGRESS.md): once the current full
+      # training run finishes, these are planned to move to training/datasets
+      # and training/runs inside the repo (gitignored) -- not done yet
+      # because /runs is being actively written to by a live run.
+      - ${HACKEYE_DATASETS_DIR:-/home/megabeast/datasets}:/datasets
+      - ${HACKEYE_RUNS_DIR:-/home/megabeast/runs}:/runs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

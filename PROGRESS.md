@@ -4,24 +4,36 @@
 tracks what's actually been done and the exact next step, so a fresh session
 can resume without re-deriving context.
 
-Last updated: 2026-10-01. **A/B grid decided — ADE20K init + `cls_pw=0.0`
+Last updated: 2026-10-03. **A/B grid decided — ADE20K init + `cls_pw=0.0`
 (config 1) wins.** Config 4 (Cityscapes + `cls_pw=1.0`) was stopped
 deliberately before completion — see verdict below, the user judged
 Cityscapes disqualified on 3 configs' worth of evidence and didn't need the
-4th to confirm it. **The full 100-epoch run is now in progress**
+4th to confirm it. **The full 100-epoch run is in progress, nearly done**
 (`--model yolo26s-sem-ade20k.pt --cls-pw 0.0 --batch 8 --workers 5
---no-plots --epochs 100 --name vistas124-s-640`), estimated ~38-42h.
-**Next: just let it run — see "If it crashes / needs to stop" below for
-the resume procedure if that's ever needed.**
+--no-plots --epochs 100 --name vistas124-s-640`).
+**Next: let it finish, then run the final evaluation — see PLAN.md step 6
+and the eval plan discussed in-session.**
+
+**Repo reorganized into folders 2026-10-03** (see PLAN.md's Layout section)
+— scripts moved under `docker/`, `training/`, `datasets/vistas/conversion/`,
+`models/`. Commands below predating that date still show the old flat
+paths (accurate history, left as-is); new commands use the new paths. Run
+`docker compose` from the `docker/` directory (or pass
+`-f docker/compose.yaml` from the repo root) — container WORKDIR/mount is
+now `/app`, not `/training`. This did **not** touch the live training
+container (already running, keeps its files loaded in memory regardless of
+on-disk moves) or the external `/datasets`/`/runs` mounts, which are
+staying external until this run finishes (deferred, see TODO at the bottom
+of this file).
 
 ## If it crashes / needs to stop: how to resume
 
-`train_semantic.py` now has a `--resume` flag (added 2026-10-01, before
+`training/train_semantic.py` has a `--resume` flag (added 2026-10-01, before
 starting the full run, specifically so a crash/power-loss/manual stop on a
-~40h run doesn't lose real progress). To resume:
+~40h run doesn't lose real progress). To resume, from the `docker/` directory:
 
 ```bash
-docker compose run --rm train train_semantic.py \
+docker compose run --rm train training/train_semantic.py \
   --resume /runs/vistas124-s-640/weights/last.pt
 ```
 
@@ -461,3 +473,27 @@ Harmless — just means the first run of each container does a quick fetch.
 All four were caught by actually running the code against real and
 synthetic fixtures, not just by code review — worth continuing to test each
 new step empirically before trusting it, per the pattern so far.
+
+## TODO: finish moving datasets/runs inside the repo (deferred)
+
+2026-10-03: repo code was reorganized into `docker/`/`training/`/
+`datasets/vistas/conversion/`/`models/` (see PLAN.md's Layout section), per
+user request. The dataset (`/home/megabeast/datasets`) and training-run
+outputs (`/home/megabeast/runs`) were deliberately **left external** for
+this pass — user's explicit call: finish the move once the live full
+100-epoch run completes, since `/runs` is being actively written to right
+now and relocating it mid-write would be destructive.
+
+**Once the run is done, still to do:**
+1. Stop/confirm no container is using `/datasets` or `/runs`.
+2. Physically move `/home/megabeast/datasets` → `training/datasets/` and
+   `/home/megabeast/runs` → `training/runs/` inside this repo (or symlink,
+   if the physical data is too large to want inside the repo's own
+   filesystem — judge at the time based on available disk space).
+3. Update `docker/compose.yaml`'s two bind-mount lines (`HACKEYE_DATASETS_DIR`/
+   `HACKEYE_RUNS_DIR` defaults) to point at the new internal paths instead
+   of `/home/megabeast/datasets` / `/home/megabeast/runs`.
+4. Add `training/datasets/` and `training/runs/` to `.gitignore` (tens of
+   GB, must never be tracked).
+5. Re-verify with `vistas_verify.py yaml-check` and a quick container start
+   that nothing broke.
