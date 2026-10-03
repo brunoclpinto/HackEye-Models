@@ -41,14 +41,16 @@ services:
       # the Dockerfile's WORKDIR. Invoke scripts by their path from here,
       # e.g. `training/train_semantic.py`, `datasets/vistas/conversion/vistas_convert.py`.
       - ..:/app
-      # Vistas is tens of GB and currently lives outside the repo entirely --
-      # override these if your dataset/runs live somewhere other than the
-      # default. DEFERRED TODO (see PROGRESS.md): once the current full
-      # training run finishes, these are planned to move to training/datasets
-      # and training/runs inside the repo (gitignored) -- not done yet
-      # because /runs is being actively written to by a live run.
-      - ${HACKEYE_DATASETS_DIR:-/home/megabeast/datasets}:/datasets
-      - ${HACKEYE_RUNS_DIR:-/home/megabeast/runs}:/runs
+      # Vistas is tens of GB (62G as of 2026-10-03) -- moved inside the repo
+      # under training/datasets and training/runs (gitignored, see
+      # .gitignore) once the first full training run finished, so the whole
+      # project lives in one place as requested. Still separately bind-mounted
+      # (rather than relying on the /app mount above reaching them) so every
+      # existing script default and documented path (/datasets/...,
+      # /runs/...) keeps working unchanged. Override these two if your
+      # dataset/runs live somewhere else.
+      - ${HACKEYE_DATASETS_DIR:-../training/datasets}:/datasets
+      - ${HACKEYE_RUNS_DIR:-../training/runs}:/runs
     deploy:
       resources:
         reservations:

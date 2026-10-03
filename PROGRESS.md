@@ -539,26 +539,28 @@ All four were caught by actually running the code against real and
 synthetic fixtures, not just by code review — worth continuing to test each
 new step empirically before trusting it, per the pattern so far.
 
-## TODO: finish moving datasets/runs inside the repo (deferred)
+## DONE: datasets/runs moved inside the repo (2026-10-03)
 
-2026-10-03: repo code was reorganized into `docker/`/`training/`/
-`datasets/vistas/conversion/`/`models/` (see PLAN.md's Layout section), per
-user request. The dataset (`/home/megabeast/datasets`) and training-run
-outputs (`/home/megabeast/runs`) were deliberately **left external** for
-this pass — user's explicit call: finish the move once the live full
-100-epoch run completes, since `/runs` is being actively written to right
-now and relocating it mid-write would be destructive.
+Completed right after the full training run finished (was deferred until
+then — see git history for the original TODO). Same filesystem
+(`/dev/mapper/ubuntu--vg-ubuntu--lv`), so `mv` was an instant rename, not a
+copy, even at 64GB combined:
 
-**Once the run is done, still to do:**
-1. Stop/confirm no container is using `/datasets` or `/runs`.
-2. Physically move `/home/megabeast/datasets` → `training/datasets/` and
-   `/home/megabeast/runs` → `training/runs/` inside this repo (or symlink,
-   if the physical data is too large to want inside the repo's own
-   filesystem — judge at the time based on available disk space).
-3. Update `docker/compose.yaml`'s two bind-mount lines (`HACKEYE_DATASETS_DIR`/
-   `HACKEYE_RUNS_DIR` defaults) to point at the new internal paths instead
-   of `/home/megabeast/datasets` / `/home/megabeast/runs`.
-4. Add `training/datasets/` and `training/runs/` to `.gitignore` (tens of
-   GB, must never be tracked).
-5. Re-verify with `vistas_verify.py yaml-check` and a quick container start
-   that nothing broke.
+1. Confirmed no container was using `/datasets` or `/runs` (training had
+   already exited cleanly).
+2. `mv /home/megabeast/datasets training/datasets` (62G) and
+   `mv /home/megabeast/runs training/runs` (2.0G).
+3. `docker/compose.yaml`'s two bind-mount defaults now point at
+   `../training/datasets` / `../training/runs` (relative to the compose
+   file, i.e. inside the repo) instead of the old `/home/megabeast/...`
+   paths. Still separately bind-mounted to `/datasets`/`/runs` in the
+   container (rather than relying on the whole-repo `/app` mount reaching
+   them) so every existing script default and documented path keeps
+   working unchanged — override `HACKEYE_DATASETS_DIR`/`HACKEYE_RUNS_DIR` if
+   you ever want them elsewhere again.
+4. `.gitignore` updated: `training/datasets/` and `training/runs/` added.
+5. Re-verified: `vistas_verify.py yaml-check` against the real dataset
+   through the new mount (`nc=124`, clean exit), and confirmed all 11
+   checkpoints (`epoch0.pt` through `last.pt`) and the full `eval-final/`
+   output directory are intact and accessible through the new `/runs`
+   mount. `git status` confirms neither new directory is tracked.

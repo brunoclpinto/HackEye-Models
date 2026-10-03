@@ -213,8 +213,9 @@ models/
 *.pt
 *.cache
 
-# Dataset and training-run outputs currently live outside this repo
-# entirely (see PROGRESS.md and docker/compose.yaml) via bind mounts, so
-# there's nothing to ignore here yet. Once they move inside the repo
-# (planned, deferred until the current training run finishes — see
-# PROGRESS.md), add training/datasets/ and training/runs/ here.
+# Dataset and training-run outputs — moved inside the repo 2026-10-03
+# (62G dataset + run checkpoints/logs). Never track these: huge, binary,
+# fully regenerable (dataset via vistas_convert.py from the archive,
+# runs via re-training). See docker/compose.yaml for the bind mounts.
+training/datasets/
+training/runs/
