@@ -55,8 +55,15 @@ masks, images hardlinked).
 | m | 1280 | 4 | 1.26 | 3.17 | 95 | 16.2 GB |
 | m | 1280 | 6 | 1.92 | 3.13 | 96 | 16.4 GB |
 
-Throughput flat across batch at 1280 -> dataloader-bound, not GPU-bound;
-batch 4 chosen (same speed, less OOM risk).
+Throughput flat across batch at 1280 because batch 4 already saturates the
+GPU (verified on the live run: GPU 99-100%, the 5 train dataloader workers
+~2% CPU each, load avg ~1.1 on 12 cores) -- GPU-bound, not dataloader-bound,
+so neither a bigger batch nor more workers speeds it up. Gradient quality
+doesn't depend on batch either: Ultralytics accumulates to `nbs=64`
+(batch 4 -> 16 steps per update); only per-step BatchNorm stats differ.
+Batch 4 chosen (same speed, less OOM risk). Measured epoch time on the real
+run is ~70 min incl. val (probe's 95 min was inflated by the concurrent
+CPU-heavy 1280 re-convert).
 
 **Running (started 2026-10-06)** as detached container `hackeye-m1280`:
 
