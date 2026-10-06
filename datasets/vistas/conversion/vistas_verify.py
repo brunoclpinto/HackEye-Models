@@ -115,9 +115,8 @@ def cmd_shapes(args: argparse.Namespace) -> None:
 def cmd_overlay(args: argparse.Namespace) -> None:
     """Blend N images with their palette-colorized masks for a human look --
     specifically at whether `curb` traces the sidewalk/road boundary."""
-    src, dst, out = Path(args.src), Path(args.dst), Path(args.out)
+    dst, out = Path(args.dst), Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    taxonomy = load_taxonomy(src / "config_v2.0.json")
 
     sampled = 0
     for split in ("train", "val"):
@@ -128,13 +127,17 @@ def cmd_overlay(args: argparse.Namespace) -> None:
         random.shuffle(stems)
         for stem in stems[: args.n // 2 + 1]:
             img = cv2.imread(str(images_dir / f"{stem}.jpg"))
+            # Colors come from the mask's own embedded palette, not the raw
+            # taxonomy, so this also renders merged datasets (vistas_merge.py)
+            # whose ids no longer line up with config_v2.0.json.
             with Image.open(masks_dir / f"{stem}.png") as m:
                 mask = np.asarray(m.convert("P"))
+                pal = np.array(m.getpalette()[: 256 * 3], dtype=np.uint8).reshape(-1, 3)
             color = np.zeros((*mask.shape, 3), dtype=np.uint8)
             for cid in np.unique(mask):
                 if cid == 255:
                     continue
-                color[mask == cid] = taxonomy.palette.get(int(cid), (0, 0, 0))[::-1]  # RGB -> BGR
+                color[mask == cid] = pal[cid][::-1]  # RGB -> BGR
             blend = cv2.addWeighted(img, 0.5, color, 0.5, 0)
             cv2.imwrite(str(out / f"{split}_{stem}_overlay.jpg"), blend)
             sampled += 1

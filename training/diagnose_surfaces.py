@@ -34,13 +34,14 @@ import yaml
 from PIL import Image
 
 # Substrings matched against class names (same convention as eval_semantic.py).
-SURFACE_KEYWORDS = [
-    "flat road", "flat sidewalk", "flat bike-lane", "flat crosswalk-plain",
-    "crosswalk-zebra", "flat pedestrian-area",
-]
+# Chosen to resolve against both the original 124-class taxonomy and the
+# merged one (datasets/vistas/conversion/merges/v1.yaml), so before/after runs
+# are comparable: e.g. "crosswalk" hits plain+zebra separately in the former
+# and the single merged class in the latter.
+SURFACE_KEYWORDS = ["flat road", "flat sidewalk", "flat bike-lane", "crosswalk", "flat pedestrian-area"]
 # Boundary cues: the things that separate same-looking pavement.
-CUE_KEYWORDS = ["barrier curb", "flat curb-cut", "barrier wall", "barrier fence",
-                "continuous solid", "continuous dashed", "marking--continuous--dashed"]
+CUE_KEYWORDS = ["curb", "divider", "barrier wall", "barrier fence", "continuous solid", "dashed",
+                "symbol bicycle", "stop-line"]
 
 DIST_BUCKETS = [0, 3, 6, 12, 24, 48, 96, 10**9]  # px from nearest surface/cue boundary
 REGION_MIN_PX = 400  # ignore tiny GT components; they're boundary slivers by definition
