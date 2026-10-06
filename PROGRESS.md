@@ -14,6 +14,66 @@ unblocked; otherwise this training phase is done. The curb/curb-cut
 fine-tuning pass (deferred, see memory: higher-res-crop-finetuning-for-curb)
 is the natural next phase of the project when picked back up.**
 
+## Branch `fineTuningLimits` (2026-10-06): merged taxonomy + m@1280 run
+
+**Diagnostic** (`training/diagnose_surfaces.py`, output
+`/runs/diag-surfaces/val_full.{json,txt}`): bike-lane, crosswalk-plain and
+pedestrian-area fail as whole regions (error ~35-48% even 96+px from any
+boundary, flipping to road/sidewalk), i.e. region/context failure, not
+boundary localization.
+
+**Class merge v1** (`datasets/vistas/conversion/merges/v1.yaml`): 124 -> 48
+classes (47 trained, only `void unlabeled` ignored). Datasets are derived,
+never hand-edited:
+
+```bash
+# 768 short side (from the existing conversion)
+docker compose run --rm --entrypoint python train datasets/vistas/conversion/vistas_merge.py \
+  --src /datasets/vistas-yolo --dst /datasets/vistas-yolo-merge-v1 \
+  --map datasets/vistas/conversion/merges/v1.yaml --config /datasets/vistas-raw/config_v2.0.json
+
+# 1280 short side: re-convert from raw (upscaling the 768 set would add no detail),
+# long-side cap raised so 16:9 frames aren't shrunk below 1280 short side
+docker compose run --rm --entrypoint python train datasets/vistas/conversion/vistas_convert.py \
+  --src /datasets/vistas-raw --dst /datasets/vistas-yolo-1280 --short-side 1280 --max-long-side 4096 --workers 12
+docker compose run --rm --entrypoint python train datasets/vistas/conversion/vistas_merge.py \
+  --src /datasets/vistas-yolo-1280 --dst /datasets/vistas-yolo-1280-merge-v1 \
+  --map datasets/vistas/conversion/merges/v1.yaml --config /datasets/vistas-raw/config_v2.0.json
+```
+
+Both merged sets: 20000/20000 masks, pixel accounting OK, `vistas_verify.py
+shapes`/`yaml-check` clean (nc=48). 1280 conversion is 11G (+537M merged
+masks, images hardlinked).
+
+**Timing probes** (60 iters, cls_pw 1.0, 5 workers, train only, no val):
+
+| model | imgsz | batch | s/iter | img/s | train min/epoch | peak reserved |
+|---|---|---|---|---|---|---|
+| l | 640 | 8 | 1.19 | 6.75 | 44 | 16.0 GB |
+| l | 1280 | 2 | 1.27 | 1.57 | 191 | 16.3 GB |
+| l | 1280 | 4 | 1.27 | 3.16 | 95 | 16.3 GB |
+| m | 1280 | 4 | 1.26 | 3.17 | 95 | 16.2 GB |
+| m | 1280 | 6 | 1.92 | 3.13 | 96 | 16.4 GB |
+
+Throughput flat across batch at 1280 -> dataloader-bound, not GPU-bound;
+batch 4 chosen (same speed, less OOM risk).
+
+**Running (started 2026-10-06)** as detached container `hackeye-m1280`:
+
+```bash
+docker compose run -d --name hackeye-m1280 train training/train_semantic.py \
+  --model /app/models/yolo26m-sem-ade20k.pt --data /datasets/vistas-yolo-1280-merge-v1/vistas-v2.0.yaml \
+  --imgsz 1280 --batch 4 --cls-pw 1.0 --workers 5 --no-plots --epochs 100 --name vistas48-m-1280
+# resume: docker rm hackeye-m1280 && docker compose run -d --name hackeye-m1280 train \
+#   training/train_semantic.py --resume /runs/vistas48-m-1280/weights/last.pt
+```
+
+`yolo26m-sem-ade20k.pt` is an official asset
+(`github.com/ultralytics/assets/releases/download/v8.4.0/`), cached in
+`models/`. Transfer 420/424 (deficit 4, as expected). Caveat: production
+inference is planned below 640 and rectangular, so a 1280-trained model
+will see a train/test scale mismatch there — evaluate at the export shape.
+
 **Repo reorganized into folders 2026-10-03** (see PLAN.md's Layout section)
 — scripts moved under `docker/`, `training/`, `datasets/vistas/conversion/`,
 `models/`. Commands below predating that date still show the old flat
