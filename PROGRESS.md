@@ -55,15 +55,23 @@ masks, images hardlinked).
 | m | 1280 | 4 | 1.26 | 3.17 | 95 | 16.2 GB |
 | m | 1280 | 6 | 1.92 | 3.13 | 96 | 16.4 GB |
 
-Throughput flat across batch at 1280 because batch 4 already saturates the
-GPU (verified on the live run: GPU 99-100%, the 5 train dataloader workers
+Throughput flat across batch at 1280 because the GPU saturates even at small
+batch (verified on the live run: GPU 99-100%, the 5 train dataloader workers
 ~2% CPU each, load avg ~1.1 on 12 cores) -- GPU-bound, not dataloader-bound,
 so neither a bigger batch nor more workers speeds it up. Gradient quality
-doesn't depend on batch either: Ultralytics accumulates to `nbs=64`
-(batch 4 -> 16 steps per update); only per-step BatchNorm stats differ.
-Batch 4 chosen (same speed, less OOM risk). Measured epoch time on the real
-run is ~70 min incl. val (probe's 95 min was inflated by the concurrent
-CPU-heavy 1280 re-convert).
+doesn't depend on batch either: Ultralytics accumulates to `nbs=64`; only
+per-step BatchNorm stats differ. Measured epoch time on the real run is
+~70 min incl. val (probe's 95 min was inflated by the concurrent CPU-heavy
+1280 re-convert).
+
+**The run is actually at batch 2, not 4.** 200 iterations into epoch 1 it
+hit a real CUDA OOM at batch 4 and Ultralytics auto-retried at batch 2
+(log: `CUDA out of memory with batch=4. Reducing to batch=2 and retrying
+(1/3)`; 9000 iters/epoch, ~7.7G). `args.yaml` still says `batch: 4` -- check
+the log, not args.yaml, for the effective batch. The 30-iter probe's batch 4
+passed only because it was too short to hit the peak. Same speed either way
+(GPU-bound); cost is noisier per-step BatchNorm stats. A `--resume` will try
+4 again and should fall back to 2 the same way.
 
 **Running (started 2026-10-06)** as detached container `hackeye-m1280`:
 
@@ -71,9 +79,31 @@ CPU-heavy 1280 re-convert).
 docker compose run -d --name hackeye-m1280 train training/train_semantic.py \
   --model /app/models/yolo26m-sem-ade20k.pt --data /datasets/vistas-yolo-1280-merge-v1/vistas-v2.0.yaml \
   --imgsz 1280 --batch 4 --cls-pw 1.0 --workers 5 --no-plots --epochs 100 --name vistas48-m-1280
+# (effective batch is 2 -- auto-reduced after an OOM, see above)
 # resume: docker rm hackeye-m1280 && docker compose run -d --name hackeye-m1280 train \
 #   training/train_semantic.py --resume /runs/vistas48-m-1280/weights/last.pt
 ```
+
+**Mid-run comparison (epoch 40 snapshot vs old final s@640)**, CPU-only so
+training was untouched (`diagnose_surfaces.py --device cpu --match-train-scale`,
+old model via `--pred-remap .../merge_manifest.json`, both scored on the same
+1280 merged val GT; output in `/runs/compare-ep40/`):
+
+| | old s@640 final | new m@1280 ep40 |
+|---|---|---|
+| mIoU (47 cls) | 0.524 | 0.552 |
+| pixel acc | 0.907 | 0.903 |
+| road / sidewalk | 0.874 / 0.662 | 0.849 / 0.662 |
+| crosswalk / bike-lane / ped-area | 0.671 / 0.426 / 0.416 | 0.632 / 0.404 / 0.412 |
+| curb / solid / dashed | 0.575 / 0.590 / 0.424 | 0.616 / 0.625 / 0.467 |
+| bicycle symbol / ped light / person / pole | 0.451 / 0.404 / 0.680 / 0.520 | 0.534 / 0.557 / 0.750 / 0.591 |
+
+30/47 classes better. Thin cues/objects gain (resolution); broad surfaces
+slightly worse. Whole-region failures dropped (bike-lane 33.3% -> 17.2%,
+crosswalk 13.7 -> 9.9, road-shoulder 46.4 -> 30.8; ped-area barely, 46.3 ->
+40.7) while road's rose 2.2 -> 5.8%: the new model over-predicts rare surfaces
+over road, consistent with `cls_pw=1.0`. Caveat: epoch 40/100 at LR ~0.020 vs
+a finished model (the old run gained only +0.011 mIoU from epoch 40 to 100).
 
 `yolo26m-sem-ade20k.pt` is an official asset
 (`github.com/ultralytics/assets/releases/download/v8.4.0/`), cached in

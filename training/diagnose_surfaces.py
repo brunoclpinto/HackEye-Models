@@ -69,6 +69,15 @@ def main() -> None:
     ap.add_argument("--batch", type=int, default=8)
     ap.add_argument("--limit", type=int, default=0, help="0 = all images in the split")
     ap.add_argument("--out-json", required=True)
+    ap.add_argument("--device", default="0", help="e.g. 0 or cpu (cpu leaves a running training job's GPU alone)")
+    ap.add_argument("--pred-remap", default=None,
+                    help="merge_manifest.json from vistas_merge.py: remaps a model trained on the ORIGINAL "
+                         "taxonomy into the merged one (--data), so old and new models are scored on "
+                         "identical merged GT")
+    ap.add_argument("--match-train-scale", action="store_true",
+                    help="predict each image at its own (h, w) with the short side = --imgsz, matching "
+                         "training (SemanticDataset scales the short side to imgsz). Without it, predict "
+                         "letterboxes the LONG side to --imgsz, i.e. a smaller scale than training saw.")
     args = ap.parse_args()
 
     from ultralytics import YOLO
@@ -118,19 +127,47 @@ def main() -> None:
     # Cue detection: for each GT cue slot, recall split near vs far from camera? keep simple: recall
     worst_images: list[tuple[float, str]] = []
 
+    # Full-taxonomy confusion for per-class IoU over every class, not just the focus set.
+    conf_full = np.zeros((nc, nc), np.int64)
+    pred_lut = np.arange(256, dtype=np.uint8)
+    if args.pred_remap:
+        old_to_new = json.loads(Path(args.pred_remap).read_text())["old_to_new"]
+        for old, new in old_to_new.items():
+            pred_lut[int(old)] = new
+    full_valid_lut = np.ones(256, bool)
+    for v in void:
+        full_valid_lut[v] = False
+    full_valid_lut[255] = False
+
     images = sorted(p for p in img_dir.iterdir() if p.suffix.lower() in {".jpg", ".jpeg", ".png"})
     if args.limit:
         images = images[: args.limit]
     model = YOLO(args.weights)
 
+    def predict(chunk):
+        if not args.match_train_scale:
+            return model.predict([str(p) for p in chunk], imgsz=args.imgsz, verbose=False,
+                                 batch=args.batch, device=args.device)
+        out = []
+        for p in chunk:
+            with Image.open(p) as im:
+                w, h = im.size
+            k = args.imgsz / min(h, w)
+            sz = (int(np.ceil(h * k / 32) * 32), int(np.ceil(w * k / 32) * 32))
+            out += model.predict(str(p), imgsz=sz, verbose=False, device=args.device)
+        return out
+
     for start in range(0, len(images), args.batch):
         chunk = images[start : start + args.batch]
-        results = model.predict([str(p) for p in chunk], imgsz=args.imgsz, verbose=False, batch=args.batch)
+        results = predict(chunk)
         for p, r in zip(chunk, results):
             # Palette ("P") PNGs: cv2 would expand them to RGB colors; PIL gives the raw class ids.
             gt_raw = np.asarray(Image.open(mask_dir / (p.stem + ".png")))
-            pr_raw = r.semantic_mask.data.cpu().numpy().astype(np.uint8)
+            pr_raw = pred_lut[r.semantic_mask.data.cpu().numpy().astype(np.uint8)]
             assert gt_raw.shape == pr_raw.shape, (p.name, gt_raw.shape, pr_raw.shape)
+            fv = full_valid_lut[gt_raw]
+            conf_full += np.bincount(gt_raw[fv].astype(np.int64) * nc + np.minimum(pr_raw[fv], nc - 1),
+                                     minlength=nc * nc).reshape(nc, nc)
             gt, pr = lut[gt_raw], lut[pr_raw]
             valid = gt != IGN
 
@@ -195,6 +232,14 @@ def main() -> None:
         "dist_total": dist_tot.tolist(), "dist_wrong": dist_err.tolist(), "dist_wrong_as_surface": dist_err_surf.tolist(),
         "region_kinds": reg_kinds, "region_count": reg_n.tolist(), "region_pixels": reg_px.tolist(),
         "region_wrong_predicted_as": reg_wrong_as.tolist(),
+        "per_class_iou_full": {names[c]: (round(float(v), 4) if conf_full[c].sum() else None)
+                               for c, v in enumerate(np.diag(conf_full) / np.maximum(
+                                   conf_full.sum(0) + conf_full.sum(1) - np.diag(conf_full), 1))},
+        "miou_full_present": round(float(np.mean([
+            np.diag(conf_full)[c] / max(conf_full.sum(0)[c] + conf_full.sum(1)[c] - conf_full[c, c], 1)
+            for c in range(nc) if conf_full[c].sum()])), 4),
+        "pixel_acc_full": round(float(np.diag(conf_full).sum() / max(conf_full.sum(), 1)), 4),
+        "pred_remap": args.pred_remap, "match_train_scale": args.match_train_scale,
         "worst_images_surface_confusion": [s for _, s in sorted(worst_images, reverse=True)[:40]],
     }
     Path(args.out_json).parent.mkdir(parents=True, exist_ok=True)
