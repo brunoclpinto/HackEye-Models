@@ -1,0 +1,112 @@
+# Class merge map v1: Vistas v2.0 124 classes -> 48 (47 trained + void--unlabeled).
+# Consumed by vistas_merge.py via vistas_config.build_merge_lut.
+#
+# key   = merged class name
+# value = Vistas raw hierarchical names (fnmatch globs allowed). The FIRST
+#         entry's palette color is used for the merged class, so list the
+#         largest member first.
+# Void members (barrier ambiguous, person-group, marking ambiguous, sign
+# ambiguous, pole-group, traffic-sign ambiguous, vehicle-group) are un-voided
+# into their group. Everything not listed keeps its own class.
+#
+# Rationale (diagnose_surfaces.py run, 2026-10-06): keep every navigable
+# surface and every cue that separates them (curb, divider, wall, fence,
+# solid/dashed lines, bicycle symbol, stop-line, pedestrian traffic light);
+# collapse subtypes that only matter for mapping.
+
+animal:
+  - animal--ground-animal
+  - animal--bird
+barrier:
+  - construction--barrier--concrete-block
+  - construction--barrier--temporary
+  - construction--barrier--other-barrier
+  - construction--barrier--ambiguous
+  - object--traffic-cone
+curb:
+  # Curb-cut folded into curb: the model no longer distinguishes step vs ramp.
+  - construction--barrier--curb
+  - construction--flat--curb-cut
+divider:
+  - construction--barrier--road-side
+  - construction--barrier--separator
+  - construction--barrier--road-median
+crosswalk:
+  - marking--discrete--crosswalk-zebra
+  - construction--flat--crosswalk-plain
+  - marking-only--discrete--crosswalk-zebra
+parking:
+  - construction--flat--parking
+  - construction--flat--parking-aisle
+building:
+  - construction--structure--building
+  - construction--structure--garage
+person:
+  - human--person--individual
+  - human--person--person-group
+rider:
+  - human--rider--bicyclist
+  - human--rider--motorcyclist
+  - human--rider--other-rider
+lane-line-dashed:
+  - marking--continuous--dashed
+  - marking-only--continuous--dashed
+marking-other:
+  - marking--discrete--other-marking
+  - marking--continuous--zigzag
+  - marking--discrete--ambiguous
+  - "marking--discrete--arrow--*"
+  - marking--discrete--give-way-row
+  - marking--discrete--give-way-single
+  - "marking--discrete--hatched--*"
+  - marking--discrete--symbol--other
+  - marking--discrete--text
+  - marking-only--discrete--other-marking
+  - marking-only--discrete--text
+terrain:
+  - nature--terrain
+  - nature--sand
+sign:
+  - object--sign--advertisement
+  - object--sign--store
+  - object--sign--information
+  - object--sign--back
+  - object--sign--other
+  - object--sign--ambiguous
+  - object--banner
+sidewalk-obstacle:
+  - object--junction-box
+  - object--trash-can
+  - object--bench
+  - object--fire-hydrant
+  - object--bike-rack
+  - object--phone-booth
+  - object--parking-meter
+  - object--mailbox
+utility-cover:
+  - object--manhole
+  - object--catch-basin
+  - object--water-valve
+pole:
+  - object--support--pole
+  - object--support--utility-pole
+  - object--support--traffic-sign-frame
+  - object--street-light
+  - object--support--pole-group
+  - object--cctv-camera
+traffic-light:
+  # Pedestrian light (object--traffic-light--pedestrians) deliberately kept separate.
+  - object--traffic-light--general-upright
+  - object--traffic-light--general-horizontal
+  - object--traffic-light--general-single
+  - object--traffic-light--cyclists
+  - object--traffic-light--other
+traffic-sign:
+  - object--traffic-sign--front
+  - "object--traffic-sign--*"
+vehicle:
+  - object--vehicle--car
+  - "object--vehicle--*"
+ego-vehicle:
+  - void--ego-vehicle
+  - void--car-mount

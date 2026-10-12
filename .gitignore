@@ -209,9 +209,12 @@ __marimo__/
 
 # Training runtime artifacts — checkpoints and run outputs are large,
 # regenerable, and have no business in git history.
-models/
+models/*
 *.pt
 *.cache
+# Except our own trained HackEye releases. models/* (not models/) is what makes
+# this negation possible: git can't re-include files inside an ignored dir.
+!models/*HackEye*
 
 # Dataset and training-run outputs — moved inside the repo 2026-10-03
 # (62G dataset + run checkpoints/logs). Never track these: huge, binary,

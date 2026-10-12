@@ -4,15 +4,260 @@
 tracks what's actually been done and the exact next step, so a fresh session
 can resume without re-deriving context.
 
-Last updated: 2026-10-03. **TRAINING COMPLETE.** The full 100-epoch run
-(`--model yolo26s-sem-ade20k.pt --cls-pw 0.0 --batch 8 --workers 5
---no-plots --epochs 100 --name vistas124-s-640`) finished cleanly, exit code
-0, no crashes across the full ~44h run. Final evaluation run against
-`best.pt` — see "FINAL EVALUATION RESULTS" section below for the numbers.
-**Next: the deferred dataset/runs-into-repo move (see TODO at bottom) is now
-unblocked; otherwise this training phase is done. The curb/curb-cut
-fine-tuning pass (deferred, see memory: higher-res-crop-finetuning-for-curb)
-is the natural next phase of the project when picked back up.**
+Last updated: 2026-10-12. **Current release:
+`models/Yolo26m-sem-HackEye20261012-544.pt`**: the 2026-10-11 m@1280 model
+fine-tuned 20 epochs at imgsz 544 for production at half 1080p (960x540,
+landscape or portrait). See "Final result" under the 544 fine-tune section
+below. Previous releases: `models/Yolo26m-sem-HackEye20261011.pt` (m@1280,
+section further down) and `models/Yolo26s-sem-HackEyeV1.pt` (124-class
+s@640).
+
+**Run outputs torn down 2026-10-11, and again 2026-10-12** after the 544
+fine-tune (its run folder, checkpoints, eval outputs, `val540-orientation`
+and the rebuilt datasets all deleted; numbers are recorded below, release
+is in `models/`). Everything under `training/runs/`
+(`/runs/` in the container) was deleted except `ultralytics-cfg/` (required
+by `YOLO_CONFIG_DIR`). Paths to `/runs/...` below are historical: the
+numbers are recorded here, and both trained models are in `models/`
+(weights verified identical to their runs' `best.pt` before deletion). No
+`last.pt` remains, so neither run can be resumed; retrain from `models/` or
+the ADE20K checkpoints instead. All derived datasets (`vistas-yolo`,
+`vistas-yolo-1280`, both `*-merge-v1`, `vistas8`) and the retention-study
+JSONs were also deleted; only `training/datasets/vistas-raw` remains. The
+original download archive (`vistas-v2.0-jxl.zip`, 21G) was deleted locally;
+the user keeps a copy in Google Drive. Rebuild with the `vistas_convert.py` /
+`vistas_merge.py` commands in the `fineTuningLimits` section below.
+
+**Next:** label a test set from real production footage (both orientations,
+~150-300 frames from distinct locations) before any more Vistas-only
+training; then 300-500 labeled production frames for a fine-tune, oversampled
+5-10x. Decide whether pedestrian-area can merge into sidewalk (it's the one
+class the 544 fine-tune lost). Only real portrait footage can test the extra
+near-ground field of view; the sky-padded simulation can't.
+
+## Production scale (540) check and 544 fine-tune (2026-10-12)
+
+Production is expected at half 1080p (960x540; the net sees 960x544). Scored
+`models/Yolo26m-sem-HackEye20261011.pt` on the full merged val (2000 imgs,
+rebuilt val-only `vistas-yolo-1280{,-merge-v1}`) with `diagnose_surfaces.py
+--match-train-scale --imgsz {540,1280}`; output `/runs/scale-check/`.
+
+| | 1280 short side | 540 short side | delta |
+|---|---|---|---|
+| mIoU (47) / pixel acc | 0.567 / 0.910 | 0.526 / 0.891 | -0.041 / -0.019 |
+| road / sidewalk / crosswalk | 0.868 / 0.671 / 0.680 | 0.845 / 0.661 / 0.653 | -0.02 to -0.03 |
+| bike-lane / ped-area | 0.442 / 0.406 | 0.406 / 0.411 | -0.036 / +0.006 |
+| curb / solid / dashed | 0.624 / 0.634 / 0.481 | 0.553 / 0.541 / 0.389 | -0.07 to -0.09 |
+| pole / ped light / person | 0.608 / 0.589 / 0.766 | 0.484 / 0.466 / 0.667 | -0.10 to -0.12 |
+
+Broad surfaces barely move; thin cues and small objects lose most of what
+1280 gained. Surface errors grow at boundaries (road 0-3px error 51% -> 68%),
+interiors unchanged. Training saw short sides ~640-1920 (resize_short to
+1280, scale +-0.5), so 540 is below its range. Next: short fine-tune from
+this model at `--imgsz 544`.
+
+**Launched 2026-10-12** as detached container `hackeye-m544ft` (after
+rebuilding `vistas-yolo` 768 + `vistas-yolo-merge-v1` from raw with the
+commands in the section below):
+
+```bash
+docker compose run -d --name hackeye-m544ft train training/train_semantic.py \
+  --model /app/models/Yolo26m-sem-HackEye20261011.pt --data /datasets/vistas-yolo-merge-v1/vistas-v2.0.yaml \
+  --imgsz 544 --batch 8 --cls-pw 1.0 --workers 5 --no-plots --epochs 20 --close-mosaic 3 \
+  --optimizer SGD --lr0 0.002 --save-period 5 --name vistas48-m-544ft
+```
+
+Evaluate the result with the same `diagnose_surfaces.py --match-train-scale
+--imgsz 540` command so it compares directly with the table above.
+
+**Mid-run checks at 540** (`training/build_orientation_val.py` builds
+`/datasets/val540-orientation/{landscape,center,portrait}` from the 1280
+merged val; scored on `landscape` = full frame at 540 short side, GT at 540,
+so the original scores 0.5235 here vs 0.526 against 1280 GT above).
+Checkpoint files are 0-based: `epoch5.pt` = end of epoch 6, `epoch10.pt` =
+end of epoch 11. Run at SGD 0.002, 3 warmup epochs, ~750 s/epoch, batch 8
+(5.4 GB), in-training val mIoU 0.487-0.495 throughout.
+
+| | original | ep6 | ep11 | ep11 vs orig |
+|---|---|---|---|---|
+| mIoU (47) / pixel acc | 0.5235 / 0.889 | 0.5078 / 0.890 | 0.5187 / 0.893 | -0.005 / +0.004 |
+| road / sidewalk / crosswalk | 0.842 / 0.657 / 0.649 | 0.847 / 0.630 / 0.649 | 0.856 / 0.645 / 0.649 | +0.013 / -0.012 / +0.001 |
+| bike-lane / ped-area | 0.411 / 0.413 | 0.413 / 0.373 | 0.443 / 0.323 | +0.032 / -0.091 |
+| curb / solid / dashed | 0.549 / 0.526 / 0.382 | 0.545 / 0.540 / 0.404 | 0.554 / 0.560 / 0.431 | +0.005 / +0.034 / +0.049 |
+| person / pole / ped light | 0.656 / 0.474 / 0.461 | 0.649 / 0.476 / 0.450 | 0.655 / 0.476 / 0.449 | -0.001 / +0.003 / -0.012 |
+| classes better than original | | 24/47 | 30/47 | |
+
+At ep11 the pre-agreed rule (still below original mIoU -> stop, purge,
+restart at lr0 0.0004) technically triggered, but the user chose to let it
+finish: mIoU was climbing (+0.011 over 5 epochs) with most of the LR decay
+ahead, and the gap is almost all pedestrian-area (likely sidewalk ambiguity,
+not LR). In-training val (letterboxed to long side 544, smaller than
+production) does not track the 540 eval: `best.pt` it picked is epoch 2, so
+evaluate `last.pt`, not `best.pt`.
+
+**Final result.** 20 epochs, ~4h10m, exited cleanly (in-training val mIoU
+0.492 at epoch 20; `best.pt` picked epoch 2 by that small-scale val, ignore
+it). `last.pt` (already optimizer-stripped, 29M) is committed as
+`models/Yolo26m-sem-HackEye20261012-544.pt` (sha256 e6550116...). Scored with
+`diagnose_surfaces.py --match-train-scale --imgsz 540` on the three
+`val540-orientation` variants; the portrait pad rows are mask 255 (ignored).
+Output in `/runs/orientation-eval/{orig,ft}-{landscape,center,portrait}`.
+
+| orig -> ft | landscape 960x540 | center 540x540 | portrait 540x960 |
+|---|---|---|---|
+| mIoU (47) | 0.524 -> 0.525 | 0.508 -> 0.516 | 0.514 -> 0.513 |
+| pixel acc | 0.889 -> 0.895 | 0.891 -> 0.897 | 0.891 -> 0.896 |
+| road | +0.016 | +0.014 | +0.012 |
+| sidewalk | -0.004 | +0.009 | -0.002 |
+| crosswalk | +0.004 | +0.010 | 0.000 |
+| bike-lane | +0.043 | +0.042 | +0.017 |
+| pedestrian-area | -0.027 | -0.022 | -0.044 |
+| curb | +0.004 | +0.007 | +0.005 |
+| solid / dashed line | +0.030 / +0.034 | +0.028 / +0.037 | +0.031 / +0.038 |
+| person / pole | +0.002 / +0.002 | +0.003 / +0.003 | +0.006 / +0.019 |
+| bicycle symbol | +0.032 | +0.068 | +0.038 |
+| classes better | 35/47 | 38/47 | 33/47 |
+
+- Fine-tune: mIoU about level, but pixel acc up everywhere and the
+  navigation classes gain (road, bike-lane, lane lines, bicycle symbol, curb
+  slightly). Only real loss: pedestrian-area, mostly to sidewalk.
+- Portrait: center vs portrait (same pixels plus the sky band) moves mIoU by
+  <0.01 for either model, so a tall frame with the content at the bottom is
+  fine. Center/landscape aren't directly comparable (the crop drops side
+  classes and context).
+- For next runs: the in-training val (letterboxed to long side 544) doesn't
+  track production-scale results. Judge checkpoints with the 540 eval.
+  The 3 warmup epochs at lr0 0.002 cost ~0.016 mIoU that took until about
+  epoch 15 to recover; a lower lr0 / shorter warmup is worth trying.
+
+## Branch `fineTuningLimits` (2026-10-06): merged taxonomy + m@1280 run
+
+**Diagnostic** (`training/diagnose_surfaces.py`, output
+`/runs/diag-surfaces/val_full.{json,txt}`): bike-lane, crosswalk-plain and
+pedestrian-area fail as whole regions (error ~35-48% even 96+px from any
+boundary, flipping to road/sidewalk), i.e. region/context failure, not
+boundary localization.
+
+**Class merge v1** (`datasets/vistas/conversion/merges/v1.yaml`): 124 -> 48
+classes (47 trained, only `void unlabeled` ignored). Datasets are derived,
+never hand-edited:
+
+```bash
+# 768 short side (from the existing conversion)
+docker compose run --rm --entrypoint python train datasets/vistas/conversion/vistas_merge.py \
+  --src /datasets/vistas-yolo --dst /datasets/vistas-yolo-merge-v1 \
+  --map datasets/vistas/conversion/merges/v1.yaml --config /datasets/vistas-raw/config_v2.0.json
+
+# 1280 short side: re-convert from raw (upscaling the 768 set would add no detail),
+# long-side cap raised so 16:9 frames aren't shrunk below 1280 short side
+docker compose run --rm --entrypoint python train datasets/vistas/conversion/vistas_convert.py \
+  --src /datasets/vistas-raw --dst /datasets/vistas-yolo-1280 --short-side 1280 --max-long-side 4096 --workers 12
+docker compose run --rm --entrypoint python train datasets/vistas/conversion/vistas_merge.py \
+  --src /datasets/vistas-yolo-1280 --dst /datasets/vistas-yolo-1280-merge-v1 \
+  --map datasets/vistas/conversion/merges/v1.yaml --config /datasets/vistas-raw/config_v2.0.json
+```
+
+Both merged sets: 20000/20000 masks, pixel accounting OK, `vistas_verify.py
+shapes`/`yaml-check` clean (nc=48). 1280 conversion is 11G (+537M merged
+masks, images hardlinked).
+
+**Timing probes** (60 iters, cls_pw 1.0, 5 workers, train only, no val):
+
+| model | imgsz | batch | s/iter | img/s | train min/epoch | peak reserved |
+|---|---|---|---|---|---|---|
+| l | 640 | 8 | 1.19 | 6.75 | 44 | 16.0 GB |
+| l | 1280 | 2 | 1.27 | 1.57 | 191 | 16.3 GB |
+| l | 1280 | 4 | 1.27 | 3.16 | 95 | 16.3 GB |
+| m | 1280 | 4 | 1.26 | 3.17 | 95 | 16.2 GB |
+| m | 1280 | 6 | 1.92 | 3.13 | 96 | 16.4 GB |
+
+Throughput flat across batch at 1280 because the GPU saturates even at small
+batch (verified on the live run: GPU 99-100%, the 5 train dataloader workers
+~2% CPU each, load avg ~1.1 on 12 cores) -- GPU-bound, not dataloader-bound,
+so neither a bigger batch nor more workers speeds it up. Gradient quality
+doesn't depend on batch either: Ultralytics accumulates to `nbs=64`; only
+per-step BatchNorm stats differ. Measured epoch time on the real run is
+~70 min incl. val (probe's 95 min was inflated by the concurrent CPU-heavy
+1280 re-convert).
+
+**The run is actually at batch 2, not 4.** 200 iterations into epoch 1 it
+hit a real CUDA OOM at batch 4 and Ultralytics auto-retried at batch 2
+(log: `CUDA out of memory with batch=4. Reducing to batch=2 and retrying
+(1/3)`; 9000 iters/epoch, ~7.7G). `args.yaml` still says `batch: 4` -- check
+the log, not args.yaml, for the effective batch. The 30-iter probe's batch 4
+passed only because it was too short to hit the peak. Same speed either way
+(GPU-bound); cost is noisier per-step BatchNorm stats. A `--resume` will try
+4 again and should fall back to 2 the same way.
+
+**Ran 2026-10-06 -> 2026-10-11** as detached container `hackeye-m1280` (since removed):
+
+```bash
+docker compose run -d --name hackeye-m1280 train training/train_semantic.py \
+  --model /app/models/yolo26m-sem-ade20k.pt --data /datasets/vistas-yolo-1280-merge-v1/vistas-v2.0.yaml \
+  --imgsz 1280 --batch 4 --cls-pw 1.0 --workers 5 --no-plots --epochs 100 --name vistas48-m-1280
+# (effective batch is 2 -- auto-reduced after an OOM, see above)
+# resume: docker rm hackeye-m1280 && docker compose run -d --name hackeye-m1280 train \
+#   training/train_semantic.py --resume /runs/vistas48-m-1280/weights/last.pt
+```
+
+**Mid-run comparison (epoch 40 snapshot vs old final s@640)**, CPU-only so
+training was untouched (`diagnose_surfaces.py --device cpu --match-train-scale`,
+old model via `--pred-remap .../merge_manifest.json`, both scored on the same
+1280 merged val GT; output in `/runs/comparisons/compare-ep40/`):
+
+| | old s@640 final | new m@1280 ep40 |
+|---|---|---|
+| mIoU (47 cls) | 0.524 | 0.552 |
+| pixel acc | 0.907 | 0.903 |
+| road / sidewalk | 0.874 / 0.662 | 0.849 / 0.662 |
+| crosswalk / bike-lane / ped-area | 0.671 / 0.426 / 0.416 | 0.632 / 0.404 / 0.412 |
+| curb / solid / dashed | 0.575 / 0.590 / 0.424 | 0.616 / 0.625 / 0.467 |
+| bicycle symbol / ped light / person / pole | 0.451 / 0.404 / 0.680 / 0.520 | 0.534 / 0.557 / 0.750 / 0.591 |
+
+30/47 classes better. Thin cues/objects gain (resolution); broad surfaces
+slightly worse. Whole-region failures dropped (bike-lane 33.3% -> 17.2%,
+crosswalk 13.7 -> 9.9, road-shoulder 46.4 -> 30.8; ped-area barely, 46.3 ->
+40.7) while road's rose 2.2 -> 5.8%: the new model over-predicts rare surfaces
+over road, consistent with `cls_pw=1.0`. Caveat: epoch 40/100 at LR ~0.020 vs
+a finished model (the old run gained only +0.011 mIoU from epoch 40 to 100).
+
+**Final result (2026-10-11).** Training stopped at 04:28 UTC during epoch
+94 with `CUDA error: an illegal memory access` in the CE loss; kernel log
+showed NVIDIA Xid 31 (GPU MMU fault) at the same second -- first crash in
+~4.5 days, GPU healthy afterwards. Not resumed: the remaining 7 epochs were
+all in the no-mosaic phase, where mIoU was slipping ~0.0001/epoch
+(0.5528 @89 -> 0.5525 @93), same as the 124-class run's no-mosaic phase
+(0.3196 -> 0.3186). `last.pt` = epoch 93 if a resume is ever wanted.
+
+- **Final model:** `best.pt` = epoch 89, val mIoU 0.5528, pixel acc 0.9055,
+  stripped (`strip_optimizer`, 86M -> 29M, all 424 tensors and sample
+  predictions bit-identical) and committed as
+  `models/Yolo26m-sem-HackEye20261011.pt`. Full checkpoint (with optimizer)
+  stays at `/runs/vistas48-m-1280/weights/best.pt`.
+- **Curve:** mIoU 0.398 (ep1) -> 0.460 (10) -> 0.513 (20) -> 0.527 (30) ->
+  0.542 (40) -> 0.549 (50) -> 0.551 (60-75 plateau) -> 0.553 (89). Val CE
+  bottomed ~0.539 at epoch 44 and rose to ~0.605 by 93 while train CE kept
+  falling -- mild overconfidence, never cost mIoU; ~epoch 80 would have
+  given nearly the same model. For next runs: `close_mosaic` 0-5 or stop at
+  plateau; the no-mosaic phase didn't help either run.
+- **Comparison vs old 124-class s@640** (epoch-64 snapshot, same 1280 merged
+  val GT, `/runs/comparisons/compare-ep65/`): mIoU 0.524 -> 0.563, pixel acc
+  0.907 -> 0.908, 40/47 classes better. Boundary cues and thin objects
+  clearly up (curb +0.047, lane lines ~+0.05, bicycle symbol +0.10,
+  pedestrian light +0.175, pole +0.08, person +0.08); broad surfaces about
+  level on IoU but with a different error profile: bike-lane recall 60% ->
+  80% (bike-lane->road 28% -> 8%), crosswalk 78% -> 87%, at the cost of road
+  being over-predicted as bike-lane/crosswalk (road recall 95% -> 89%) --
+  the `cls_pw=1.0` trade-off. Slightly worse: road-shoulder -0.027,
+  service-lane -0.019, road -0.013. Still failing: pothole, animal (too
+  little data); pedestrian-area vs sidewalk confusion (~29%) may be label
+  ambiguity.
+
+`yolo26m-sem-ade20k.pt` is an official asset
+(`github.com/ultralytics/assets/releases/download/v8.4.0/`), cached in
+`models/`. Transfer 420/424 (deficit 4, as expected). Caveat: production
+inference is planned below 640 and rectangular, so a 1280-trained model
+will see a train/test scale mismatch there — evaluate at the export shape.
 
 **Repo reorganized into folders 2026-10-03** (see PLAN.md's Layout section)
 — scripts moved under `docker/`, `training/`, `datasets/vistas/conversion/`,
