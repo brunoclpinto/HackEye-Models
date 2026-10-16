@@ -99,8 +99,8 @@ def _make_early_abort_callback(capture: _TransferCapture, strict: bool):
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--data", required=True, help="path to vistas-v2.0.yaml (or vistas8.yaml for the smoke run)")
-    ap.add_argument("--model", default="yolo26s-sem-ade20k.pt",
-                     help="warm-start checkpoint; yolo26s-sem.pt (Cityscapes-19) is the A/B alternative")
+    ap.add_argument("--model", default="/base-models/yolo26s-sem-ade20k.pt",
+                     help="warm-start checkpoint; /base-models/yolo26s-sem.pt (Cityscapes-19) is the A/B alternative")
     ap.add_argument("--epochs", type=int, default=100)
     ap.add_argument("--imgsz", type=int, default=640, help="scalar only -- see module docstring")
     ap.add_argument("--batch", type=int, default=8,

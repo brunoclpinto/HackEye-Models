@@ -51,6 +51,10 @@ services:
       # dataset/runs live somewhere else.
       - ${HACKEYE_DATASETS_DIR:-../training/datasets}:/datasets
       - ${HACKEYE_RUNS_DIR:-../training/runs}:/runs
+      # Downloaded base checkpoints (official Ultralytics yolo26* assets) live
+      # in the shared ~/models/ultralytics dir alongside every other base model
+      # on this host; only our own HackEye fine-tunes stay in this repo's models/.
+      - ${BASE_MODELS_DIR:-../../../models/ultralytics}:/base-models:ro
     deploy:
       resources:
         reservations:

@@ -31,8 +31,10 @@ docker compose run --rm train <path/to/script>.py ...
 
 The container mounts the repo root at `/app` (the build context is the repo
 root even though the Dockerfile/compose file live in `docker/`), so script
-paths are relative to the repo root, not to `docker/`. Cached checkpoint
-downloads live in `models/` (gitignored). See `docker/Dockerfile` /
+paths are relative to the repo root, not to `docker/`. Downloaded base
+checkpoints (official `yolo26*` assets) live in the shared `~/models/ultralytics`
+dir, mounted read-only at `/base-models`; `models/` holds only our own HackEye
+fine-tunes. See `docker/Dockerfile` /
 `docker/compose.yaml` and **PROGRESS.md** for exact commands, volume
 mounts, and environment (single RTX 5060 Ti, 16GB VRAM).
 
