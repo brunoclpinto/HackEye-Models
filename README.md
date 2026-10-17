@@ -60,3 +60,12 @@ conversion status, and verification results.
   dataset by manually scraping OpenImagesV7's web visualizer. Abandoned when
   the project's focus shifted to Vistas-based semantic segmentation; the raw
   scraped HTML has been removed from the repo.
+
+## Licences and thanks
+The scripts in this repository are [Apache-2.0](LICENSE). **The trained models in `models/` are not:**
+- They are fine-tuned from Ultralytics YOLO26 weights, which makes them **AGPL-3.0**.
+- They are trained on **Mapillary Vistas** (CC BY-NC-SA 4.0, research licence), warm-started from ADE20K-trained weights.
+
+The models are free for non-commercial use, with attribution. See
+**[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)** for the details and the acknowledgements.
+
