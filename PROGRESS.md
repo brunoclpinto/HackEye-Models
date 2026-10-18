@@ -37,6 +37,33 @@ training; then 300-500 labeled production frames for a fine-tune, oversampled
 class the 544 fine-tune lost). Only real portrait footage can test the extra
 near-ground field of view; the sky-padded simulation can't.
 
+## 720p scale check (2026-10-18)
+
+Production is now 720p (1280x720; the net sees 1280x736), and the next model
+is l. To decide its training scale, `models/Yolo26m-sem-HackEye20261011-1280.pt`
+was scored on the full merged val (2000 imgs, rebuilt val-only
+`vistas-yolo-1280{,-merge-v1}`, kept) with `diagnose_surfaces.py
+--match-train-scale --imgsz {720,1280}`. Output is in `/runs/scale-check/m1280-at-{720,1280}.json`,
+and the driver is `/runs/scale720.sh`.
+
+| | 1280 short side | 720 short side | delta |
+|---|---|---|---|
+| mIoU (47) / pixel acc | 0.567 / 0.910 | 0.548 / 0.902 | -0.019 / -0.008 |
+| road / sidewalk / crosswalk / bike-lane | 0.868 / 0.671 / 0.680 / 0.442 | 0.857 / 0.676 / 0.666 / 0.444 | -0.01 to +0.005 |
+| pedestrian-area / sidewalk-obstacle | 0.406 / 0.429 | 0.449 / 0.464 | +0.043 / +0.035 |
+| curb / solid / dashed | 0.624 / 0.634 / 0.481 | 0.589 / 0.586 / 0.431 | -0.035 to -0.050 |
+| pole / ped light / person | 0.608 / 0.589 / 0.766 | 0.540 / 0.533 / 0.716 | -0.05 to -0.07 |
+
+The 1280 row reproduces the 2026-10-12 table. The overall drop is about half
+of the drop at 540 (-0.041), with the same pattern: thin cues and small
+objects lose, broad surfaces hold or gain (pedestrian-area and
+sidewalk-obstacle improve at 720). The drop mixes lost detail (unavoidable
+at 720) with train/test scale mismatch (recoverable by training at 720).
+**Decision input:** -0.019 sits between "safe to train at 1280" (<=0.01) and
+"train at 736" (~0.03). Recommended: train l at `--imgsz 736` with the usual
++-0.5 scale aug. **Baseline to beat at 720: mIoU 0.548**, plus the thin-cue
+rows above.
+
 ## Production scale (540) check and 544 fine-tune (2026-10-12)
 
 Production is expected at half 1080p (960x540; the net sees 960x544). Scored
