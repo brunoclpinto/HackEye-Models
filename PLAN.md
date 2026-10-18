@@ -145,7 +145,7 @@ root), and invoke scripts by their path from the mounted repo root, e.g.
 ### Derived dataset layout
 
 ```
-/home/megabeast/datasets/vistas-yolo/
+~/media/hackeye-models/datasets/vistas-yolo/   (/datasets/vistas-yolo in the container)
   vistas-v2.0.yaml
   images/{train,val}/<stem>.jpg
   masks/{train,val}/<stem>.png

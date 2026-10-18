@@ -14,6 +14,13 @@ the 544 model too flimsy in the Lab, and V1 was superseded. Both are still in
 git history. Next: retrain on Vistas plus curated frames from the HackEye
 media library (720p/l is the leading candidate, ~140 ms on A14).
 
+**Storage (since 2026-10-18):** datasets and run outputs live outside the
+repo, in `~/media/hackeye-models/{datasets,runs}` (mounted at `/datasets` and
+`/runs` by `docker/compose.yaml`; override with `HACKEYE_DATASETS_DIR` /
+`HACKEYE_RUNS_DIR`). The repo holds only definition files. Older paths below
+(`training/datasets`, `training/runs`, `/home/megabeast/datasets`) are
+historical. X-1280 launch script: `training/launch_x1280.sh`.
+
 **Run outputs torn down 2026-10-11, and again 2026-10-12** after the 544
 fine-tune (its run folder, checkpoints, eval outputs, `val540-orientation`
 and the rebuilt datasets all deleted; numbers are recorded below, release

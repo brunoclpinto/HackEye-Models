@@ -41,16 +41,13 @@ services:
       # the Dockerfile's WORKDIR. Invoke scripts by their path from here,
       # e.g. `training/train_semantic.py`, `datasets/vistas/conversion/vistas_convert.py`.
       - ..:/app
-      # Vistas is tens of GB (62G as of 2026-10-03) -- moved inside the repo
-      # under training/datasets and training/runs (gitignored, see
-      # .gitignore) once the first full training run finished, so the whole
-      # project lives in one place as requested. Still separately bind-mounted
-      # (rather than relying on the /app mount above reaching them) so every
-      # existing script default and documented path (/datasets/...,
-      # /runs/...) keeps working unchanged. Override these two if your
-      # dataset/runs live somewhere else.
-      - ${HACKEYE_DATASETS_DIR:-../training/datasets}:/datasets
-      - ${HACKEYE_RUNS_DIR:-../training/runs}:/runs
+      # Datasets and run outputs live outside the repo, in the shared media
+      # dir (~/media/hackeye-models, since 2026-10-18): the repo holds only
+      # definition files. Mounted at /datasets and /runs so every script
+      # default and documented path keeps working. Override with
+      # HACKEYE_DATASETS_DIR / HACKEYE_RUNS_DIR.
+      - ${HACKEYE_DATASETS_DIR:-../../../media/hackeye-models/datasets}:/datasets
+      - ${HACKEYE_RUNS_DIR:-../../../media/hackeye-models/runs}:/runs
       # Downloaded base checkpoints (official Ultralytics yolo26* assets) live
       # in the shared ~/models/ultralytics dir alongside every other base model
       # on this host; only our own HackEye fine-tunes stay in this repo's models/.
