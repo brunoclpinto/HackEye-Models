@@ -5,7 +5,9 @@ tracks what's actually been done and the exact next step, so a fresh session
 can resume without re-deriving context.
 
 Last updated: 2026-10-18. **Current release:
-`models/Yolo26m-sem-HackEye20261011.pt`** (m@1280, section further down).
+`models/Yolo26m-sem-HackEye20261011-1280.pt`** (m@1280, section further down;
+renamed from `Yolo26m-sem-HackEye20261011.pt` on 2026-10-18 to carry its
+training resolution, like the 544 release did).
 The 544 fine-tune (`Yolo26m-sem-HackEye20261012-544.pt`) and the 124-class
 s@640 `Yolo26s-sem-HackEyeV1.pt` were removed on 2026-10-18: the user judged
 the 544 model too flimsy in the Lab, and V1 was superseded. Both are still in
@@ -38,7 +40,7 @@ near-ground field of view; the sky-padded simulation can't.
 ## Production scale (540) check and 544 fine-tune (2026-10-12)
 
 Production is expected at half 1080p (960x540; the net sees 960x544). Scored
-`models/Yolo26m-sem-HackEye20261011.pt` on the full merged val (2000 imgs,
+`models/Yolo26m-sem-HackEye20261011-1280.pt` on the full merged val (2000 imgs,
 rebuilt val-only `vistas-yolo-1280{,-merge-v1}`) with `diagnose_surfaces.py
 --match-train-scale --imgsz {540,1280}`; output `/runs/scale-check/`.
 
@@ -62,7 +64,7 @@ commands in the section below):
 
 ```bash
 docker compose run -d --name hackeye-m544ft train training/train_semantic.py \
-  --model /app/models/Yolo26m-sem-HackEye20261011.pt --data /datasets/vistas-yolo-merge-v1/vistas-v2.0.yaml \
+  --model /app/models/Yolo26m-sem-HackEye20261011-1280.pt --data /datasets/vistas-yolo-merge-v1/vistas-v2.0.yaml \
   --imgsz 544 --batch 8 --cls-pw 1.0 --workers 5 --no-plots --epochs 20 --close-mosaic 3 \
   --optimizer SGD --lr0 0.002 --save-period 5 --name vistas48-m-544ft
 ```
@@ -232,7 +234,7 @@ all in the no-mosaic phase, where mIoU was slipping ~0.0001/epoch
 - **Final model:** `best.pt` = epoch 89, val mIoU 0.5528, pixel acc 0.9055,
   stripped (`strip_optimizer`, 86M -> 29M, all 424 tensors and sample
   predictions bit-identical) and committed as
-  `models/Yolo26m-sem-HackEye20261011.pt`. Full checkpoint (with optimizer)
+  `models/Yolo26m-sem-HackEye20261011-1280.pt`. Full checkpoint (with optimizer)
   stays at `/runs/vistas48-m-1280/weights/best.pt`.
 - **Curve:** mIoU 0.398 (ep1) -> 0.460 (10) -> 0.513 (20) -> 0.527 (30) ->
   0.542 (40) -> 0.549 (50) -> 0.551 (60-75 plateau) -> 0.553 (89). Val CE
