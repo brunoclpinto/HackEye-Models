@@ -4,13 +4,13 @@
 tracks what's actually been done and the exact next step, so a fresh session
 can resume without re-deriving context.
 
-Last updated: 2026-10-12. **Current release:
-`models/Yolo26m-sem-HackEye20261012-544.pt`**: the 2026-10-11 m@1280 model
-fine-tuned 20 epochs at imgsz 544 for production at half 1080p (960x540,
-landscape or portrait). See "Final result" under the 544 fine-tune section
-below. Previous releases: `models/Yolo26m-sem-HackEye20261011.pt` (m@1280,
-section further down) and `models/Yolo26s-sem-HackEyeV1.pt` (124-class
-s@640).
+Last updated: 2026-10-18. **Current release:
+`models/Yolo26m-sem-HackEye20261011.pt`** (m@1280, section further down).
+The 544 fine-tune (`Yolo26m-sem-HackEye20261012-544.pt`) and the 124-class
+s@640 `Yolo26s-sem-HackEyeV1.pt` were removed on 2026-10-18: the user judged
+the 544 model too flimsy in the Lab, and V1 was superseded. Both are still in
+git history. Next: retrain on Vistas plus curated frames from the HackEye
+media library (720p/l is the leading candidate, ~140 ms on A14).
 
 **Run outputs torn down 2026-10-11, and again 2026-10-12** after the 544
 fine-tune (its run folder, checkpoints, eval outputs, `val540-orientation`
@@ -97,8 +97,8 @@ evaluate `last.pt`, not `best.pt`.
 
 **Final result.** 20 epochs, ~4h10m, exited cleanly (in-training val mIoU
 0.492 at epoch 20; `best.pt` picked epoch 2 by that small-scale val, ignore
-it). `last.pt` (already optimizer-stripped, 29M) is committed as
-`models/Yolo26m-sem-HackEye20261012-544.pt` (sha256 e6550116...). Scored with
+it). `last.pt` (already optimizer-stripped, 29M) was committed as
+`models/Yolo26m-sem-HackEye20261012-544.pt` (removed 2026-10-18) (sha256 e6550116...). Scored with
 `diagnose_surfaces.py --match-train-scale --imgsz 540` on the three
 `val540-orientation` variants; the portrait pad rows are mask 255 (ignored).
 Output in `/runs/orientation-eval/{orig,ft}-{landscape,center,portrait}`.
