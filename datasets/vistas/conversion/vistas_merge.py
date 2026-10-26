@@ -1,6 +1,6 @@
 """Derives a merged-taxonomy dataset from an already-converted one (the
 output of vistas_convert.py), collapsing classes per a merge map such as
-merges/v1.yaml.
+merges/HackEye26.1-48.yaml.
 
 Works from the converted masks, not the raw archive: a LUT remap commutes
 with nearest-neighbour resizing (both are per-pixel lookups of the same
@@ -13,7 +13,7 @@ manifest records per-split pixel counts for both taxonomies, and the run
 fails unless each merged class's count equals the sum of its members'.
 
     python vistas_merge.py --src /datasets/vistas-yolo --dst /datasets/vistas-yolo-merge-v1 \\
-        --map datasets/vistas/conversion/merges/v1.yaml --config /datasets/vistas-raw/config_v2.0.json
+        --map datasets/vistas/conversion/merges/HackEye26.1-48.yaml --config /datasets/vistas-raw/config_v2.0.json
 """
 
 from __future__ import annotations
@@ -65,7 +65,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--src", required=True, type=Path, help="converted dataset root (output of vistas_convert.py)")
     ap.add_argument("--dst", required=True, type=Path)
-    ap.add_argument("--map", required=True, type=Path, help="merge map YAML, e.g. merges/v1.yaml")
+    ap.add_argument("--map", required=True, type=Path, help="merge map YAML, e.g. merges/HackEye26.1-48.yaml")
     ap.add_argument("--config", required=True, type=Path, help="raw Vistas config_v2.0.json")
     ap.add_argument("--splits", default="train,val")
     ap.add_argument("--workers", type=int, default=12)

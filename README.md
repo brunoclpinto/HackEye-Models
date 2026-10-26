@@ -26,7 +26,8 @@ Our trained models live in `models/` (only `*HackEye*` files are tracked):
 | `Yolo26x-sem-Vistas124-HackEye-1280.pt` | **Dataset creation**: x, full 124-class Vistas, trained at 1280. It's the base model for curating and pre-labelling training images; it isn't shipped in the app. |
 
 App releases are named `Yolo26<size>-sem-HackEye<app version>-<classes>-<train res>.pt`. Dataset-creation
-models are named `Yolo26<size>-sem-<dataset><classes>-HackEye-<train res>.pt`. See **PROGRESS.md** for how
+models are named `Yolo26<size>-sem-<dataset><classes>-HackEye-<train res>.pt`. The app release's class merge map carries the same name:
+`datasets/vistas/conversion/merges/HackEye26.1-48.yaml`. See **PROGRESS.md** for how
 each was trained and evaluated.
 
 ## Setup

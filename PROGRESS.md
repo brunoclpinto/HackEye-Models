@@ -15,7 +15,8 @@ Last updated: 2026-10-26.
 
 Naming: app releases are `Yolo26<size>-sem-HackEye<app version>-<classes>-<train res>.pt`.
 Dataset-creation models are `Yolo26<size>-sem-<dataset><classes>-HackEye-<train res>.pt`, with no
-app version. (The scheme is inferred from the two names above; correct it here if the
+app version. The 48-class merge map shares the app release's name:
+`datasets/vistas/conversion/merges/HackEye26.1-48.yaml` (formerly `merges/v1.yaml`). (The scheme is inferred from the two names above; correct it here if the
 intent differs.)
 
 The 544 fine-tune (`Yolo26m-sem-HackEye20261012-544.pt`) and the 124-class
@@ -213,7 +214,7 @@ pedestrian-area fail as whole regions (error ~35-48% even 96+px from any
 boundary, flipping to road/sidewalk), i.e. region/context failure, not
 boundary localization.
 
-**Class merge v1** (`datasets/vistas/conversion/merges/v1.yaml`): 124 -> 48
+**Class merge HackEye26.1-48** (formerly "merge v1"; `datasets/vistas/conversion/merges/HackEye26.1-48.yaml`): 124 -> 48
 classes (47 trained, only `void unlabeled` ignored). Datasets are derived,
 never hand-edited:
 
@@ -221,7 +222,7 @@ never hand-edited:
 # 768 short side (from the existing conversion)
 docker compose run --rm --entrypoint python train datasets/vistas/conversion/vistas_merge.py \
   --src /datasets/vistas-yolo --dst /datasets/vistas-yolo-merge-v1 \
-  --map datasets/vistas/conversion/merges/v1.yaml --config /datasets/vistas-raw/config_v2.0.json
+  --map datasets/vistas/conversion/merges/HackEye26.1-48.yaml --config /datasets/vistas-raw/config_v2.0.json
 
 # 1280 short side: re-convert from raw (upscaling the 768 set would add no detail),
 # long-side cap raised so 16:9 frames aren't shrunk below 1280 short side
@@ -229,7 +230,7 @@ docker compose run --rm --entrypoint python train datasets/vistas/conversion/vis
   --src /datasets/vistas-raw --dst /datasets/vistas-yolo-1280 --short-side 1280 --max-long-side 4096 --workers 12
 docker compose run --rm --entrypoint python train datasets/vistas/conversion/vistas_merge.py \
   --src /datasets/vistas-yolo-1280 --dst /datasets/vistas-yolo-1280-merge-v1 \
-  --map datasets/vistas/conversion/merges/v1.yaml --config /datasets/vistas-raw/config_v2.0.json
+  --map datasets/vistas/conversion/merges/HackEye26.1-48.yaml --config /datasets/vistas-raw/config_v2.0.json
 ```
 
 Both merged sets: 20000/20000 masks, pixel accounting OK, `vistas_verify.py
