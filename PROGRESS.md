@@ -25,6 +25,13 @@ the 544 model too flimsy in the Lab, and V1 was superseded. Both are still in
 git history. Next: use the X model to curate frames from the HackEye media library, then
 retrain the app model on Vistas plus those frames (720p/l is the leading candidate, ~140 ms on A14).
 
+**Run outputs torn down again 2026-10-26** after the X-1280 release: the whole `vistas124-x-1280` run dir
+(about 20 GB of epoch checkpoints and the epoch-81 backup), the X probes (`x-probe`), the scale checks
+(`scale-check`, `scale720.*`), the X-1280 launch log and email helper, and the derived datasets
+`vistas-yolo-1280` (124-class 1280 train + val) and `vistas-yolo-1280-merge-v1`. Only `vistas-raw` and
+`runs/ultralytics-cfg` remain; rebuild with `training/launch_x1280.sh` or the commands below. The repo's untracked
+`weights/yolo26n.pt` (Ultralytics' AMP-check download) and an empty `runs/semantic/val` were removed too.
+
 **Storage (since 2026-10-18):** datasets and run outputs live outside the
 repo, in `~/media/hackeye-models/{datasets,runs}` (mounted at `/datasets` and
 `/runs` by `docker/compose.yaml`; override with `HACKEYE_DATASETS_DIR` /
@@ -79,19 +86,19 @@ deployment, so it was never scored with the production-resolution eval.
   Ultralytics continue at epoch 97, with the cosine LR jumping to its end value (~0.0003)
   and mosaic closing for 98–100. `results.csv` jumps from epoch 81 to 97. Epochs 97–100
   were each a small new best (0.4160 -> 0.4164), with no dip from closing mosaic. The
-  original epoch-81 checkpoint is kept as `weights/last_epoch81_backup.pt`.
+  original epoch-81 checkpoint was kept as `weights/last_epoch81_backup.pt` until the teardown below.
 - **Release:** the final `best.pt` (already stripped by Ultralytics: no optimizer or EMA,
   81 MB, fp32) was moved to `models/`; it loads as a 124-class semantic model. The
-  per-epoch `epochN.pt` checkpoints stay in the run dir.
+  per-epoch `epochN.pt` checkpoints were deleted in the teardown below.
 
 ## 720p scale check (2026-10-18)
 
 Production is now 720p (1280x720; the net sees 1280x736), and the next model
 is l. To decide its training scale, `models/Yolo26m-sem-HackEye26.1-48-1280.pt`
 was scored on the full merged val (2000 imgs, rebuilt val-only
-`vistas-yolo-1280{,-merge-v1}`, kept) with `diagnose_surfaces.py
---match-train-scale --imgsz {720,1280}`. Output is in `/runs/scale-check/m1280-at-{720,1280}.json`,
-and the driver is `/runs/scale720.sh`.
+`vistas-yolo-1280{,-merge-v1}`, since deleted) with `diagnose_surfaces.py
+--match-train-scale --imgsz {720,1280}`. The output (`/runs/scale-check/m1280-at-{720,1280}.json`) and the driver
+(`/runs/scale720.sh`) were deleted on 2026-10-26; the numbers are below.
 
 | | 1280 short side | 720 short side | delta |
 |---|---|---|---|
