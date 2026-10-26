@@ -16,6 +16,19 @@ to a later fine-tuning pass — they're a tiny fraction of pixels per image and
 need far more iterations to get right than the broad classes do. See
 `datasets/vistas/conversion/vistas_classes.txt` for the full 124-class list.
 
+## Models
+
+Our trained models live in `models/` (only `*HackEye*` files are tracked):
+
+| File | Use |
+|---|---|
+| `Yolo26m-sem-HackEye26.1-48-1280.pt` | **App release** for HackEye v26.1: m, 48-class merged taxonomy, trained at 1280 |
+| `Yolo26x-sem-Vistas124-HackEye-1280.pt` | **Dataset creation**: x, full 124-class Vistas, trained at 1280. It's the base model for curating and pre-labelling training images; it isn't shipped in the app. |
+
+App releases are named `Yolo26<size>-sem-HackEye<app version>-<classes>-<train res>.pt`. Dataset-creation
+models are named `Yolo26<size>-sem-<dataset><classes>-HackEye-<train res>.pt`. See **PROGRESS.md** for how
+each was trained and evaluated.
+
 ## Setup
 
 Docker-based; no Jupyter notebooks. From `docker/` (or pass

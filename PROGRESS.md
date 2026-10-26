@@ -4,15 +4,25 @@
 tracks what's actually been done and the exact next step, so a fresh session
 can resume without re-deriving context.
 
-Last updated: 2026-10-18. **Current release:
-`models/Yolo26m-sem-HackEye20261011-1280.pt`** (m@1280, section further down;
-renamed from `Yolo26m-sem-HackEye20261011.pt` on 2026-10-18 to carry its
-training resolution, like the 544 release did).
+Last updated: 2026-10-26.
+
+**Models in `models/` (naming changed 2026-10-26):**
+
+| File | Role | Training |
+|---|---|---|
+| `Yolo26m-sem-HackEye26.1-48-1280.pt` | **App release** (HackEye v26.1), the model the app runs | m, 48-class merged taxonomy, 1280; the former `Yolo26m-sem-HackEye20261011-1280.pt` |
+| `Yolo26x-sem-Vistas124-HackEye-1280.pt` | **Dataset creation**: base or teacher model for curating and pre-labelling training images from the HackEye media library. Not an app release (too heavy for A14). | x, full 124-class Vistas, 1280; see "X-1280 run" below |
+
+Naming: app releases are `Yolo26<size>-sem-HackEye<app version>-<classes>-<train res>.pt`.
+Dataset-creation models are `Yolo26<size>-sem-<dataset><classes>-HackEye-<train res>.pt`, with no
+app version. (The scheme is inferred from the two names above; correct it here if the
+intent differs.)
+
 The 544 fine-tune (`Yolo26m-sem-HackEye20261012-544.pt`) and the 124-class
 s@640 `Yolo26s-sem-HackEyeV1.pt` were removed on 2026-10-18: the user judged
 the 544 model too flimsy in the Lab, and V1 was superseded. Both are still in
-git history. Next: retrain on Vistas plus curated frames from the HackEye
-media library (720p/l is the leading candidate, ~140 ms on A14).
+git history. Next: use the X model to curate frames from the HackEye media library, then
+retrain the app model on Vistas plus those frames (720p/l is the leading candidate, ~140 ms on A14).
 
 **Storage (since 2026-10-18):** datasets and run outputs live outside the
 repo, in `~/media/hackeye-models/{datasets,runs}` (mounted at `/datasets` and
@@ -44,10 +54,39 @@ training; then 300-500 labeled production frames for a fine-tune, oversampled
 class the 544 fine-tune lost). Only real portrait footage can test the extra
 near-ground field of view; the sky-padded simulation can't.
 
+## X-1280 run (2026-10-18 to 10-26): dataset-creation model
+
+**Result:** `models/Yolo26x-sem-Vistas124-HackEye-1280.pt`, in-training val **mIoU 0.4164,
+pixel acc 0.9013** (124 classes, letterboxed to 1280; the best epoch was the last). For
+reference, the old 124-class s@640 V1 run plateaued around 0.32 on the same metric. Its
+purpose is dataset creation (curating and pre-labelling HackEye media-library frames), not
+deployment, so it was never scored with the production-resolution eval.
+
+- **Setup:** `yolo26x-sem-ade20k.pt` warm start, full 124-class Vistas at short side 1280
+  (`vistas-yolo-1280`, rebuilt by `training/launch_x1280.sh`), imgsz 1280, batch 1,
+  cls_pw 1.0, close_mosaic 3, cos_lr, workers 5, save_period 1. Run dir
+  `/runs/vistas124-x-1280` (`~/media/hackeye-models/runs/`), container `hackeye-x1280`.
+- **Speed:** about 2.19 h per epoch (2.3 it/s, 9.6–10 GB VRAM), far faster than the
+  1.38 s/step probe predicted. A Lab GPU analysis running alongside drops it to about 1.5 it/s.
+- **Curve:** mIoU 0.231 (ep1) -> 0.301 (11) -> 0.352 (20) -> 0.379 (30) -> 0.393 (40)
+  -> 0.406 (50) -> 0.410 (60) -> 0.413 (70) -> 0.4159 (81). From epoch 50 the gains were
+  about 0.0003 per epoch.
+- **Skipped epochs 82–96 (user decision, 2026-10-25):** the gains no longer justified about
+  33 h more. The container was stopped during epoch 82, `ckpt['epoch']` in `last.pt` was
+  set to 95 (0-based), and the run was resumed with
+  `train_semantic.py --data ... --resume /runs/vistas124-x-1280/weights/last.pt`. That made
+  Ultralytics continue at epoch 97, with the cosine LR jumping to its end value (~0.0003)
+  and mosaic closing for 98–100. `results.csv` jumps from epoch 81 to 97. Epochs 97–100
+  were each a small new best (0.4160 -> 0.4164), with no dip from closing mosaic. The
+  original epoch-81 checkpoint is kept as `weights/last_epoch81_backup.pt`.
+- **Release:** the final `best.pt` (already stripped by Ultralytics: no optimizer or EMA,
+  81 MB, fp32) was moved to `models/`; it loads as a 124-class semantic model. The
+  per-epoch `epochN.pt` checkpoints stay in the run dir.
+
 ## 720p scale check (2026-10-18)
 
 Production is now 720p (1280x720; the net sees 1280x736), and the next model
-is l. To decide its training scale, `models/Yolo26m-sem-HackEye20261011-1280.pt`
+is l. To decide its training scale, `models/Yolo26m-sem-HackEye26.1-48-1280.pt`
 was scored on the full merged val (2000 imgs, rebuilt val-only
 `vistas-yolo-1280{,-merge-v1}`, kept) with `diagnose_surfaces.py
 --match-train-scale --imgsz {720,1280}`. Output is in `/runs/scale-check/m1280-at-{720,1280}.json`,
@@ -74,7 +113,7 @@ rows above.
 ## Production scale (540) check and 544 fine-tune (2026-10-12)
 
 Production is expected at half 1080p (960x540; the net sees 960x544). Scored
-`models/Yolo26m-sem-HackEye20261011-1280.pt` on the full merged val (2000 imgs,
+`models/Yolo26m-sem-HackEye26.1-48-1280.pt` on the full merged val (2000 imgs,
 rebuilt val-only `vistas-yolo-1280{,-merge-v1}`) with `diagnose_surfaces.py
 --match-train-scale --imgsz {540,1280}`; output `/runs/scale-check/`.
 
@@ -98,7 +137,7 @@ commands in the section below):
 
 ```bash
 docker compose run -d --name hackeye-m544ft train training/train_semantic.py \
-  --model /app/models/Yolo26m-sem-HackEye20261011-1280.pt --data /datasets/vistas-yolo-merge-v1/vistas-v2.0.yaml \
+  --model /app/models/Yolo26m-sem-HackEye26.1-48-1280.pt --data /datasets/vistas-yolo-merge-v1/vistas-v2.0.yaml \
   --imgsz 544 --batch 8 --cls-pw 1.0 --workers 5 --no-plots --epochs 20 --close-mosaic 3 \
   --optimizer SGD --lr0 0.002 --save-period 5 --name vistas48-m-544ft
 ```
@@ -268,7 +307,7 @@ all in the no-mosaic phase, where mIoU was slipping ~0.0001/epoch
 - **Final model:** `best.pt` = epoch 89, val mIoU 0.5528, pixel acc 0.9055,
   stripped (`strip_optimizer`, 86M -> 29M, all 424 tensors and sample
   predictions bit-identical) and committed as
-  `models/Yolo26m-sem-HackEye20261011-1280.pt`. Full checkpoint (with optimizer)
+  `models/Yolo26m-sem-HackEye26.1-48-1280.pt`. Full checkpoint (with optimizer)
   stays at `/runs/vistas48-m-1280/weights/best.pt`.
 - **Curve:** mIoU 0.398 (ep1) -> 0.460 (10) -> 0.513 (20) -> 0.527 (30) ->
   0.542 (40) -> 0.549 (50) -> 0.551 (60-75 plateau) -> 0.553 (89). Val CE
