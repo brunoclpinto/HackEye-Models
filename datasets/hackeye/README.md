@@ -32,6 +32,16 @@ cd docker
 docker compose run --rm train training/train_semantic.py --data /datasets/HackEye26.1-124/HackEye26.1-124.yaml ...
 ```
 
+## Taxonomy
+
+The masks store base class ids: the 124 Vistas ids, plus custom classes appended from id 124 (255 is ignore).
+The class list travels with the dataset as `<root>/taxonomy.json` (`id, name, raw_name, hier, color, void, parent`).
+`pseudo_label.py` finalize writes it from `taxonomies/vistas124.json`'s schema if missing and never overwrites an
+existing one, because it may hold custom classes; the yaml `names`, voids and mask palette are built from it.
+Merged datasets (e.g. 48 classes) are derived with a merge map from `taxonomies/`:
+`python datasets/common/dataset_merge.py --src /datasets/HackEye26.1-124 --dst /datasets/<name> --map taxonomies/HackEye26.1-48.yaml`
+(`--dry-run` only resolves the map). The shared code is in `datasets/common/`.
+
 ## Layout
 
 ```

@@ -35,7 +35,7 @@ from PIL import Image
 
 # Substrings matched against class names (same convention as eval_semantic.py).
 # Chosen to resolve against both the original 124-class taxonomy and the
-# merged one (datasets/vistas/conversion/merges/HackEye26.1-48.yaml), so before/after runs
+# merged one (taxonomies/HackEye26.1-48.yaml), so before/after runs
 # are comparable: e.g. "crosswalk" hits plain+zebra separately in the former
 # and the single merged class in the latter.
 SURFACE_KEYWORDS = ["flat road", "flat sidewalk", "flat bike-lane", "crosswalk", "flat pedestrian-area"]

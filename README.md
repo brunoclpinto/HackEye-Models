@@ -27,8 +27,15 @@ Our trained models live in `models/` (only `*HackEye*` files are tracked):
 
 App releases are named `Yolo26<size>-sem-HackEye<app version>-<classes>-<train res>.pt`. Dataset-creation
 models are named `Yolo26<size>-sem-<dataset><classes>-HackEye-<train res>.pt`. The app release's class merge map carries the same name:
-`datasets/vistas/conversion/merges/HackEye26.1-48.yaml`. See **PROGRESS.md** for how
+`taxonomies/HackEye26.1-48.yaml`. See **PROGRESS.md** for how
 each was trained and evaluated.
+
+## Taxonomies
+
+`taxonomies/` holds the base taxonomy (`vistas124.json`, generated from Vistas' `config_v2.0.json`) and the
+merge maps (`HackEye26.1-48.yaml`). `datasets/common/` holds the shared code: `taxonomy.py` (load/save the
+taxonomy json, resolve a merge map to a LUT) and `dataset_merge.py` (derive a merged dataset from any source
+dataset). Tests: `python -m pytest datasets/common/tests` in the container.
 
 ## Setup
 

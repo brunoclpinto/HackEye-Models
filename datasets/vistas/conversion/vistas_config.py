@@ -122,58 +122,16 @@ def build_merge_lut(taxonomy: VistasTaxonomy, groups: dict[str, list[str]]) -> M
     """Collapses groups of original classes into single classes.
 
     groups maps the merged class's name to raw hierarchical names (fnmatch
-    globs allowed, e.g. "object--vehicle--*"). Resolved against raw_names so
-    the map survives id shifts between Vistas releases. A void member is
-    deliberately UN-voided: its pixels become ordinary pixels of the merged
-    class (e.g. vehicle-group -> vehicle). Void classes not named in any group
-    stay ignored.
-
-    New ids are dense and ordered by each class's lowest original id, so the
-    unmerged classes keep the original relative order. The palette, names
-    and void list are renumbered in lockstep with the LUT (same rationale as
-    vistas_convert._build_remap_lut). Raises on a pattern matching nothing
-    or a class claimed by two groups -- both are silent mislabels otherwise.
+    globs allowed, e.g. "object--vehicle--*"). The logic and its semantics now
+    live in datasets/common/taxonomy.py (resolve_merge_map); this is a thin
+    adapter that keeps the old VistasTaxonomy/MergedTaxonomy API working.
     """
-    owner: dict[int, str] = {}
-    resolved: dict[str, list[int]] = {}
-    for group, patterns in groups.items():
-        ids: list[int] = []
-        for pat in patterns:
-            hits = [cid for cid, raw in taxonomy.raw_names.items() if fnmatch.fnmatchcase(raw, pat)]
-            if not hits:
-                raise ValueError(f"merge group {group!r}: pattern {pat!r} matches no class")
-            for cid in hits:
-                if cid in owner and owner[cid] != group:
-                    raise ValueError(f"class {taxonomy.raw_names[cid]!r} claimed by both {owner[cid]!r} and {group!r}")
-                if cid not in ids:
-                    ids.append(cid)
-                owner[cid] = group
-        resolved[group] = ids
+    import sys
 
-    # One entry per output class, keyed by its lowest original id for ordering.
-    entries: list[tuple[int, str, list[int]]] = []
-    for cid in range(taxonomy.n):
-        if cid not in owner:
-            entries.append((cid, taxonomy.names[cid], [cid]))
-    for group, ids in resolved.items():
-        entries.append((min(ids), group, ids))
-    entries.sort(key=lambda e: e[0])
+    datasets_dir = str(Path(__file__).resolve().parents[2])
+    if datasets_dir not in sys.path:
+        sys.path.insert(0, datasets_dir)
+    from common.taxonomy import from_vistas_taxonomy, resolve_merge_map
 
-    lut = np.full(256, IGNORE_LABEL, dtype=np.uint8)
-    names: dict[int, str] = {}
-    palette: dict[int, tuple[int, int, int]] = {}
-    members: dict[int, list[int]] = {}
-    void_ids: list[int] = []
-    for new_id, (_, name, ids) in enumerate(entries):
-        for cid in ids:
-            lut[cid] = new_id
-        names[new_id] = name
-        palette[new_id] = taxonomy.palette[ids[0]]
-        members[new_id] = sorted(ids)
-        if len(ids) == 1 and ids[0] in taxonomy.void_ids and ids[0] not in owner:
-            void_ids.append(new_id)
-
-    if len(set(names.values())) != len(names):
-        dupes = {n for n in names.values() if list(names.values()).count(n) > 1}
-        raise ValueError(f"merged class names collide: {dupes} -- rename the merge group(s)")
-    return MergedTaxonomy(lut=lut, names=names, palette=palette, void_ids=void_ids, members=members)
+    m = resolve_merge_map(from_vistas_taxonomy(taxonomy), groups)
+    return MergedTaxonomy(lut=m.lut, names=m.names, palette=m.palette, void_ids=m.void_ids, members=m.members)

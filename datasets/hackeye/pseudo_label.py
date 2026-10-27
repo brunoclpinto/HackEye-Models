@@ -80,9 +80,12 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "vistas" / "conversion"))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "training"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from gpu_guard import assert_torch_cuda  # noqa: E402
-from vistas_config import load_taxonomy  # noqa: E402
+from common.taxonomy import (  # noqa: E402
+    Taxonomy, data_yaml_dict, from_vistas_config, load_taxonomy_json, palette_bytes, save_taxonomy_json,
+)
 
 SPLITS = ("train", "val")
 LABEL_COLS = ["stem", "conf_mean", "conf_p10", "lowconf_frac"]
@@ -92,12 +95,13 @@ SAVE_EVERY = 3000  # frames between class_pixels.json rewrites
 
 # ----------------------------------------------------------------- helpers
 
-def _palette_bytes(palette: dict[int, tuple[int, int, int]], n: int) -> list[int]:
-    flat: list[int] = []
-    for cid in range(n):
-        flat.extend(palette[cid])
-    flat.extend([0, 0, 0] * (256 - n))
-    return flat[:768]
+def _load_dataset_taxonomy(dst: Path, vistas_config: str) -> tuple[Taxonomy, bool]:
+    """The dataset's own taxonomy.json if present (it may hold custom classes: keep it),
+    else the Vistas base built from the config. Returns (taxonomy, existed)."""
+    p = dst / "taxonomy.json"
+    if p.exists():
+        return load_taxonomy_json(p), True
+    return from_vistas_config(vistas_config), False
 
 
 def _write_mask_png(path: Path, arr: np.ndarray, palette: list[int]) -> None:
@@ -180,7 +184,7 @@ def _load_totals(meta: Path, nc: int) -> tuple[np.ndarray, dict[str, set[str]]]:
 def _save_totals(meta: Path, totals: np.ndarray, names: dict[int, str]) -> None:
     _atomic_text(meta / "class_pixels.json", json.dumps(
         {"total_pixels": int(totals.sum()),
-         "classes": {str(i): {"name": names[i], "pixels": int(totals[i])} for i in range(len(totals))}},
+         "classes": {str(i): {"name": names[i], "pixels": int(totals[i])} for i in sorted(names)}},
         indent=1))
 
 
@@ -276,7 +280,7 @@ def finalize(args, tax, names: dict[int, str]) -> None:
     scales = [int(x) for x in str(args.imgsz).split(",")]
     dst: Path = args.dst
     meta = dst / "meta"
-    nc = tax.n
+    nc = tax.max_id + 1   # ids may have gaps (deleted custom classes) but never exceed 254
 
     # 1. every jpg has a mask and vice versa
     problems = []
@@ -319,7 +323,9 @@ def finalize(args, tax, names: dict[int, str]) -> None:
     os.replace(dst / "frames.csv.tmp", dst / "frames.csv")
 
     # 3. yaml
-    data = tax.to_data_yaml_dict(root=str(dst))
+    data = data_yaml_dict(names, tax.void_ids, root=str(dst))
+    if not (dst / "taxonomy.json").exists():  # never overwrite: it may carry custom classes
+        save_taxonomy_json(tax, dst / "taxonomy.json")
     data["path"] = f"/datasets/{dst.name}"
     data["train"], data["val"] = "images/train", "images/val"
     _atomic_text(dst / f"{dst.name}.yaml", yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
@@ -354,7 +360,7 @@ def finalize(args, tax, names: dict[int, str]) -> None:
                        "jpeg_quality": args.jpeg_quality, "jpeg_optimize": True},
         "clips": sorted(clips.values(), key=lambda c: c["clip"]),
         "counts": {s: sum(1 for r in frame_rows if r["split"] == s) for s in SPLITS} | {"total": len(frame_rows)},
-        "class_pixels": {names[i]: int(totals[i]) for i in range(nc)},
+        "class_pixels": {names[i]: int(totals[i]) for i in sorted(names)},
         "class_pixels_total": int(totals.sum()),
     }
     cur = meta / "curation.json"
@@ -379,10 +385,10 @@ def main() -> None:
     ap.add_argument("--jpeg-quality", type=int, default=100, help="recorded in the manifest only (extract_frames.py sets it)")
     args = ap.parse_args()
 
-    tax = load_taxonomy(args.vistas_config)
-    names, nc = dict(tax.names), tax.n
+    tax, _ = _load_dataset_taxonomy(args.dst, args.vistas_config)
+    names, nc = dict(tax.names), tax.max_id + 1
     dst, meta = args.dst, args.dst / "meta"
-    palette = _palette_bytes(tax.palette, nc)
+    palette = palette_bytes(tax.palette)
 
     if args.finalize_only:
         finalize(args, tax, names)
@@ -437,7 +443,7 @@ def main() -> None:
                 cp_w[split].writerow([stem, _encode_counts(hk["counts"])])
                 lab_f[split].flush()
                 cp_f[split].flush()
-                totals[:] += hk["counts"]
+                totals[: len(hk["counts"])] += hk["counts"]
                 n_done += 1
                 if n_done % 500 == 0:
                     el = time.time() - t0

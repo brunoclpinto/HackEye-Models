@@ -1,5 +1,5 @@
 # Class merge map HackEye26.1-48 (formerly merges/v1.yaml, "merge v1"): Vistas v2.0 124 classes -> 48 (47 trained + void--unlabeled).
-# Consumed by vistas_merge.py via vistas_config.build_merge_lut.
+# Consumed by datasets/common/dataset_merge.py (and vistas_merge.py) via taxonomy.resolve_merge_map.
 #
 # key   = merged class name
 # value = Vistas raw hierarchical names (fnmatch globs allowed). The FIRST

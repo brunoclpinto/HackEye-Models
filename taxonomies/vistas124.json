@@ -1,0 +1,1618 @@
+{
+ "name": "vistas124",
+ "source": "Mapillary Vistas v2.0 config_v2.0.json",
+ "classes": [
+  {
+   "id": 0,
+   "name": "animal bird",
+   "raw_name": "animal--bird",
+   "hier": "animal",
+   "color": [
+    165,
+    42,
+    42
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 1,
+   "name": "animal ground-animal",
+   "raw_name": "animal--ground-animal",
+   "hier": "animal",
+   "color": [
+    0,
+    192,
+    0
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 2,
+   "name": "barrier ambiguous",
+   "raw_name": "construction--barrier--ambiguous",
+   "hier": "construction",
+   "color": [
+    250,
+    170,
+    31
+   ],
+   "void": true,
+   "parent": null
+  },
+  {
+   "id": 3,
+   "name": "barrier concrete-block",
+   "raw_name": "construction--barrier--concrete-block",
+   "hier": "construction",
+   "color": [
+    250,
+    170,
+    32
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 4,
+   "name": "barrier curb",
+   "raw_name": "construction--barrier--curb",
+   "hier": "construction",
+   "color": [
+    196,
+    196,
+    196
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 5,
+   "name": "barrier fence",
+   "raw_name": "construction--barrier--fence",
+   "hier": "construction",
+   "color": [
+    190,
+    153,
+    153
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 6,
+   "name": "barrier guard-rail",
+   "raw_name": "construction--barrier--guard-rail",
+   "hier": "construction",
+   "color": [
+    180,
+    165,
+    180
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 7,
+   "name": "barrier other-barrier",
+   "raw_name": "construction--barrier--other-barrier",
+   "hier": "construction",
+   "color": [
+    90,
+    120,
+    150
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 8,
+   "name": "barrier road-median",
+   "raw_name": "construction--barrier--road-median",
+   "hier": "construction",
+   "color": [
+    250,
+    170,
+    33
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 9,
+   "name": "barrier road-side",
+   "raw_name": "construction--barrier--road-side",
+   "hier": "construction",
+   "color": [
+    250,
+    170,
+    34
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 10,
+   "name": "barrier separator",
+   "raw_name": "construction--barrier--separator",
+   "hier": "construction",
+   "color": [
+    128,
+    128,
+    128
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 11,
+   "name": "barrier temporary",
+   "raw_name": "construction--barrier--temporary",
+   "hier": "construction",
+   "color": [
+    250,
+    170,
+    35
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 12,
+   "name": "barrier wall",
+   "raw_name": "construction--barrier--wall",
+   "hier": "construction",
+   "color": [
+    102,
+    102,
+    156
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 13,
+   "name": "flat bike-lane",
+   "raw_name": "construction--flat--bike-lane",
+   "hier": "construction",
+   "color": [
+    128,
+    64,
+    255
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 14,
+   "name": "flat crosswalk-plain",
+   "raw_name": "construction--flat--crosswalk-plain",
+   "hier": "construction",
+   "color": [
+    140,
+    140,
+    200
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 15,
+   "name": "flat curb-cut",
+   "raw_name": "construction--flat--curb-cut",
+   "hier": "construction",
+   "color": [
+    170,
+    170,
+    170
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 16,
+   "name": "flat driveway",
+   "raw_name": "construction--flat--driveway",
+   "hier": "construction",
+   "color": [
+    250,
+    170,
+    36
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 17,
+   "name": "flat parking",
+   "raw_name": "construction--flat--parking",
+   "hier": "construction",
+   "color": [
+    250,
+    170,
+    160
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 18,
+   "name": "flat parking-aisle",
+   "raw_name": "construction--flat--parking-aisle",
+   "hier": "construction",
+   "color": [
+    250,
+    170,
+    37
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 19,
+   "name": "flat pedestrian-area",
+   "raw_name": "construction--flat--pedestrian-area",
+   "hier": "construction",
+   "color": [
+    96,
+    96,
+    96
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 20,
+   "name": "flat rail-track",
+   "raw_name": "construction--flat--rail-track",
+   "hier": "construction",
+   "color": [
+    230,
+    150,
+    140
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 21,
+   "name": "flat road",
+   "raw_name": "construction--flat--road",
+   "hier": "construction",
+   "color": [
+    128,
+    64,
+    128
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 22,
+   "name": "flat road-shoulder",
+   "raw_name": "construction--flat--road-shoulder",
+   "hier": "construction",
+   "color": [
+    110,
+    110,
+    110
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 23,
+   "name": "flat service-lane",
+   "raw_name": "construction--flat--service-lane",
+   "hier": "construction",
+   "color": [
+    110,
+    110,
+    110
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 24,
+   "name": "flat sidewalk",
+   "raw_name": "construction--flat--sidewalk",
+   "hier": "construction",
+   "color": [
+    244,
+    35,
+    232
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 25,
+   "name": "flat traffic-island",
+   "raw_name": "construction--flat--traffic-island",
+   "hier": "construction",
+   "color": [
+    128,
+    196,
+    128
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 26,
+   "name": "structure bridge",
+   "raw_name": "construction--structure--bridge",
+   "hier": "construction",
+   "color": [
+    150,
+    100,
+    100
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 27,
+   "name": "structure building",
+   "raw_name": "construction--structure--building",
+   "hier": "construction",
+   "color": [
+    70,
+    70,
+    70
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 28,
+   "name": "structure garage",
+   "raw_name": "construction--structure--garage",
+   "hier": "construction",
+   "color": [
+    150,
+    150,
+    150
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 29,
+   "name": "structure tunnel",
+   "raw_name": "construction--structure--tunnel",
+   "hier": "construction",
+   "color": [
+    150,
+    120,
+    90
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 30,
+   "name": "person individual",
+   "raw_name": "human--person--individual",
+   "hier": "human",
+   "color": [
+    220,
+    20,
+    60
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 31,
+   "name": "person person-group",
+   "raw_name": "human--person--person-group",
+   "hier": "human",
+   "color": [
+    220,
+    20,
+    60
+   ],
+   "void": true,
+   "parent": null
+  },
+  {
+   "id": 32,
+   "name": "rider bicyclist",
+   "raw_name": "human--rider--bicyclist",
+   "hier": "human",
+   "color": [
+    255,
+    0,
+    0
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 33,
+   "name": "rider motorcyclist",
+   "raw_name": "human--rider--motorcyclist",
+   "hier": "human",
+   "color": [
+    255,
+    0,
+    100
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 34,
+   "name": "rider other-rider",
+   "raw_name": "human--rider--other-rider",
+   "hier": "human",
+   "color": [
+    255,
+    0,
+    200
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 35,
+   "name": "marking--continuous--dashed",
+   "raw_name": "marking--continuous--dashed",
+   "hier": "marking",
+   "color": [
+    255,
+    255,
+    255
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 36,
+   "name": "continuous solid",
+   "raw_name": "marking--continuous--solid",
+   "hier": "marking",
+   "color": [
+    255,
+    255,
+    255
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 37,
+   "name": "continuous zigzag",
+   "raw_name": "marking--continuous--zigzag",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    29
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 38,
+   "name": "discrete ambiguous",
+   "raw_name": "marking--discrete--ambiguous",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    28
+   ],
+   "void": true,
+   "parent": null
+  },
+  {
+   "id": 39,
+   "name": "arrow left",
+   "raw_name": "marking--discrete--arrow--left",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    26
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 40,
+   "name": "arrow other",
+   "raw_name": "marking--discrete--arrow--other",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    25
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 41,
+   "name": "arrow right",
+   "raw_name": "marking--discrete--arrow--right",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    24
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 42,
+   "name": "arrow split-left-or-straight",
+   "raw_name": "marking--discrete--arrow--split-left-or-straight",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    22
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 43,
+   "name": "arrow split-right-or-straight",
+   "raw_name": "marking--discrete--arrow--split-right-or-straight",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    21
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 44,
+   "name": "arrow straight",
+   "raw_name": "marking--discrete--arrow--straight",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    20
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 45,
+   "name": "marking--discrete--crosswalk-zebra",
+   "raw_name": "marking--discrete--crosswalk-zebra",
+   "hier": "marking",
+   "color": [
+    255,
+    255,
+    255
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 46,
+   "name": "discrete give-way-row",
+   "raw_name": "marking--discrete--give-way-row",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    19
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 47,
+   "name": "discrete give-way-single",
+   "raw_name": "marking--discrete--give-way-single",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    18
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 48,
+   "name": "hatched chevron",
+   "raw_name": "marking--discrete--hatched--chevron",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    12
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 49,
+   "name": "hatched diagonal",
+   "raw_name": "marking--discrete--hatched--diagonal",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    11
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 50,
+   "name": "marking--discrete--other-marking",
+   "raw_name": "marking--discrete--other-marking",
+   "hier": "marking",
+   "color": [
+    255,
+    255,
+    255
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 51,
+   "name": "discrete stop-line",
+   "raw_name": "marking--discrete--stop-line",
+   "hier": "marking",
+   "color": [
+    255,
+    255,
+    255
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 52,
+   "name": "symbol bicycle",
+   "raw_name": "marking--discrete--symbol--bicycle",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    16
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 53,
+   "name": "symbol other",
+   "raw_name": "marking--discrete--symbol--other",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    15
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 54,
+   "name": "marking--discrete--text",
+   "raw_name": "marking--discrete--text",
+   "hier": "marking",
+   "color": [
+    250,
+    170,
+    15
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 55,
+   "name": "marking-only--continuous--dashed",
+   "raw_name": "marking-only--continuous--dashed",
+   "hier": "marking-only",
+   "color": [
+    255,
+    255,
+    255
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 56,
+   "name": "marking-only--discrete--crosswalk-zebra",
+   "raw_name": "marking-only--discrete--crosswalk-zebra",
+   "hier": "marking-only",
+   "color": [
+    255,
+    255,
+    255
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 57,
+   "name": "marking-only--discrete--other-marking",
+   "raw_name": "marking-only--discrete--other-marking",
+   "hier": "marking-only",
+   "color": [
+    255,
+    255,
+    255
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 58,
+   "name": "marking-only--discrete--text",
+   "raw_name": "marking-only--discrete--text",
+   "hier": "marking-only",
+   "color": [
+    255,
+    255,
+    255
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 59,
+   "name": "nature mountain",
+   "raw_name": "nature--mountain",
+   "hier": "nature",
+   "color": [
+    64,
+    170,
+    64
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 60,
+   "name": "nature sand",
+   "raw_name": "nature--sand",
+   "hier": "nature",
+   "color": [
+    230,
+    160,
+    50
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 61,
+   "name": "nature sky",
+   "raw_name": "nature--sky",
+   "hier": "nature",
+   "color": [
+    70,
+    130,
+    180
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 62,
+   "name": "nature snow",
+   "raw_name": "nature--snow",
+   "hier": "nature",
+   "color": [
+    190,
+    255,
+    255
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 63,
+   "name": "nature terrain",
+   "raw_name": "nature--terrain",
+   "hier": "nature",
+   "color": [
+    152,
+    251,
+    152
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 64,
+   "name": "nature vegetation",
+   "raw_name": "nature--vegetation",
+   "hier": "nature",
+   "color": [
+    107,
+    142,
+    35
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 65,
+   "name": "nature water",
+   "raw_name": "nature--water",
+   "hier": "nature",
+   "color": [
+    0,
+    170,
+    30
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 66,
+   "name": "object banner",
+   "raw_name": "object--banner",
+   "hier": "object",
+   "color": [
+    255,
+    255,
+    128
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 67,
+   "name": "object bench",
+   "raw_name": "object--bench",
+   "hier": "object",
+   "color": [
+    250,
+    0,
+    30
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 68,
+   "name": "object bike-rack",
+   "raw_name": "object--bike-rack",
+   "hier": "object",
+   "color": [
+    100,
+    140,
+    180
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 69,
+   "name": "object catch-basin",
+   "raw_name": "object--catch-basin",
+   "hier": "object",
+   "color": [
+    220,
+    128,
+    128
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 70,
+   "name": "object cctv-camera",
+   "raw_name": "object--cctv-camera",
+   "hier": "object",
+   "color": [
+    222,
+    40,
+    40
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 71,
+   "name": "object fire-hydrant",
+   "raw_name": "object--fire-hydrant",
+   "hier": "object",
+   "color": [
+    100,
+    170,
+    30
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 72,
+   "name": "object junction-box",
+   "raw_name": "object--junction-box",
+   "hier": "object",
+   "color": [
+    40,
+    40,
+    40
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 73,
+   "name": "object mailbox",
+   "raw_name": "object--mailbox",
+   "hier": "object",
+   "color": [
+    33,
+    33,
+    33
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 74,
+   "name": "object manhole",
+   "raw_name": "object--manhole",
+   "hier": "object",
+   "color": [
+    100,
+    128,
+    160
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 75,
+   "name": "object parking-meter",
+   "raw_name": "object--parking-meter",
+   "hier": "object",
+   "color": [
+    20,
+    20,
+    255
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 76,
+   "name": "object phone-booth",
+   "raw_name": "object--phone-booth",
+   "hier": "object",
+   "color": [
+    142,
+    0,
+    0
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 77,
+   "name": "object pothole",
+   "raw_name": "object--pothole",
+   "hier": "object",
+   "color": [
+    70,
+    100,
+    150
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 78,
+   "name": "sign advertisement",
+   "raw_name": "object--sign--advertisement",
+   "hier": "object",
+   "color": [
+    250,
+    171,
+    30
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 79,
+   "name": "sign ambiguous",
+   "raw_name": "object--sign--ambiguous",
+   "hier": "object",
+   "color": [
+    250,
+    172,
+    30
+   ],
+   "void": true,
+   "parent": null
+  },
+  {
+   "id": 80,
+   "name": "sign back",
+   "raw_name": "object--sign--back",
+   "hier": "object",
+   "color": [
+    250,
+    173,
+    30
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 81,
+   "name": "sign information",
+   "raw_name": "object--sign--information",
+   "hier": "object",
+   "color": [
+    250,
+    174,
+    30
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 82,
+   "name": "sign other",
+   "raw_name": "object--sign--other",
+   "hier": "object",
+   "color": [
+    250,
+    175,
+    30
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 83,
+   "name": "sign store",
+   "raw_name": "object--sign--store",
+   "hier": "object",
+   "color": [
+    250,
+    176,
+    30
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 84,
+   "name": "object street-light",
+   "raw_name": "object--street-light",
+   "hier": "object",
+   "color": [
+    210,
+    170,
+    100
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 85,
+   "name": "support pole",
+   "raw_name": "object--support--pole",
+   "hier": "object",
+   "color": [
+    153,
+    153,
+    153
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 86,
+   "name": "support pole-group",
+   "raw_name": "object--support--pole-group",
+   "hier": "object",
+   "color": [
+    153,
+    153,
+    153
+   ],
+   "void": true,
+   "parent": null
+  },
+  {
+   "id": 87,
+   "name": "support traffic-sign-frame",
+   "raw_name": "object--support--traffic-sign-frame",
+   "hier": "object",
+   "color": [
+    128,
+    128,
+    128
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 88,
+   "name": "support utility-pole",
+   "raw_name": "object--support--utility-pole",
+   "hier": "object",
+   "color": [
+    0,
+    0,
+    80
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 89,
+   "name": "object traffic-cone",
+   "raw_name": "object--traffic-cone",
+   "hier": "object",
+   "color": [
+    210,
+    60,
+    60
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 90,
+   "name": "traffic-light general-single",
+   "raw_name": "object--traffic-light--general-single",
+   "hier": "object",
+   "color": [
+    250,
+    170,
+    30
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 91,
+   "name": "traffic-light pedestrians",
+   "raw_name": "object--traffic-light--pedestrians",
+   "hier": "object",
+   "color": [
+    250,
+    170,
+    30
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 92,
+   "name": "traffic-light general-upright",
+   "raw_name": "object--traffic-light--general-upright",
+   "hier": "object",
+   "color": [
+    250,
+    170,
+    30
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 93,
+   "name": "traffic-light general-horizontal",
+   "raw_name": "object--traffic-light--general-horizontal",
+   "hier": "object",
+   "color": [
+    250,
+    170,
+    30
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 94,
+   "name": "traffic-light cyclists",
+   "raw_name": "object--traffic-light--cyclists",
+   "hier": "object",
+   "color": [
+    250,
+    170,
+    30
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 95,
+   "name": "traffic-light other",
+   "raw_name": "object--traffic-light--other",
+   "hier": "object",
+   "color": [
+    250,
+    170,
+    30
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 96,
+   "name": "traffic-sign ambiguous",
+   "raw_name": "object--traffic-sign--ambiguous",
+   "hier": "object",
+   "color": [
+    192,
+    192,
+    192
+   ],
+   "void": true,
+   "parent": null
+  },
+  {
+   "id": 97,
+   "name": "traffic-sign back",
+   "raw_name": "object--traffic-sign--back",
+   "hier": "object",
+   "color": [
+    192,
+    192,
+    192
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 98,
+   "name": "traffic-sign direction-back",
+   "raw_name": "object--traffic-sign--direction-back",
+   "hier": "object",
+   "color": [
+    192,
+    192,
+    192
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 99,
+   "name": "traffic-sign direction-front",
+   "raw_name": "object--traffic-sign--direction-front",
+   "hier": "object",
+   "color": [
+    220,
+    220,
+    0
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 100,
+   "name": "traffic-sign front",
+   "raw_name": "object--traffic-sign--front",
+   "hier": "object",
+   "color": [
+    220,
+    220,
+    0
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 101,
+   "name": "traffic-sign information-parking",
+   "raw_name": "object--traffic-sign--information-parking",
+   "hier": "object",
+   "color": [
+    0,
+    0,
+    196
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 102,
+   "name": "traffic-sign temporary-back",
+   "raw_name": "object--traffic-sign--temporary-back",
+   "hier": "object",
+   "color": [
+    192,
+    192,
+    192
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 103,
+   "name": "traffic-sign temporary-front",
+   "raw_name": "object--traffic-sign--temporary-front",
+   "hier": "object",
+   "color": [
+    220,
+    220,
+    0
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 104,
+   "name": "object trash-can",
+   "raw_name": "object--trash-can",
+   "hier": "object",
+   "color": [
+    140,
+    140,
+    20
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 105,
+   "name": "vehicle bicycle",
+   "raw_name": "object--vehicle--bicycle",
+   "hier": "object",
+   "color": [
+    119,
+    11,
+    32
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 106,
+   "name": "vehicle boat",
+   "raw_name": "object--vehicle--boat",
+   "hier": "object",
+   "color": [
+    150,
+    0,
+    255
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 107,
+   "name": "vehicle bus",
+   "raw_name": "object--vehicle--bus",
+   "hier": "object",
+   "color": [
+    0,
+    60,
+    100
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 108,
+   "name": "vehicle car",
+   "raw_name": "object--vehicle--car",
+   "hier": "object",
+   "color": [
+    0,
+    0,
+    142
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 109,
+   "name": "vehicle caravan",
+   "raw_name": "object--vehicle--caravan",
+   "hier": "object",
+   "color": [
+    0,
+    0,
+    90
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 110,
+   "name": "vehicle motorcycle",
+   "raw_name": "object--vehicle--motorcycle",
+   "hier": "object",
+   "color": [
+    0,
+    0,
+    230
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 111,
+   "name": "vehicle on-rails",
+   "raw_name": "object--vehicle--on-rails",
+   "hier": "object",
+   "color": [
+    0,
+    80,
+    100
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 112,
+   "name": "vehicle other-vehicle",
+   "raw_name": "object--vehicle--other-vehicle",
+   "hier": "object",
+   "color": [
+    128,
+    64,
+    64
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 113,
+   "name": "vehicle trailer",
+   "raw_name": "object--vehicle--trailer",
+   "hier": "object",
+   "color": [
+    0,
+    0,
+    110
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 114,
+   "name": "vehicle truck",
+   "raw_name": "object--vehicle--truck",
+   "hier": "object",
+   "color": [
+    0,
+    0,
+    70
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 115,
+   "name": "vehicle vehicle-group",
+   "raw_name": "object--vehicle--vehicle-group",
+   "hier": "object",
+   "color": [
+    0,
+    0,
+    142
+   ],
+   "void": true,
+   "parent": null
+  },
+  {
+   "id": 116,
+   "name": "vehicle wheeled-slow",
+   "raw_name": "object--vehicle--wheeled-slow",
+   "hier": "object",
+   "color": [
+    0,
+    0,
+    192
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 117,
+   "name": "object water-valve",
+   "raw_name": "object--water-valve",
+   "hier": "object",
+   "color": [
+    170,
+    170,
+    170
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 118,
+   "name": "void car-mount",
+   "raw_name": "void--car-mount",
+   "hier": "void",
+   "color": [
+    32,
+    32,
+    32
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 119,
+   "name": "void dynamic",
+   "raw_name": "void--dynamic",
+   "hier": "void",
+   "color": [
+    111,
+    74,
+    0
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 120,
+   "name": "void ego-vehicle",
+   "raw_name": "void--ego-vehicle",
+   "hier": "void",
+   "color": [
+    120,
+    10,
+    10
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 121,
+   "name": "void ground",
+   "raw_name": "void--ground",
+   "hier": "void",
+   "color": [
+    81,
+    0,
+    81
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 122,
+   "name": "void static",
+   "raw_name": "void--static",
+   "hier": "void",
+   "color": [
+    111,
+    111,
+    0
+   ],
+   "void": false,
+   "parent": null
+  },
+  {
+   "id": 123,
+   "name": "void unlabeled",
+   "raw_name": "void--unlabeled",
+   "hier": "void",
+   "color": [
+    0,
+    0,
+    0
+   ],
+   "void": true,
+   "parent": null
+  }
+ ]
+}

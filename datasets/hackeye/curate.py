@@ -48,7 +48,7 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "vistas" / "conversion"))
 from vistas_config import build_merge_lut, load_taxonomy  # noqa: E402
 
-MERGE_YAML = Path(__file__).resolve().parents[1] / "vistas" / "conversion" / "merges" / "HackEye26.1-48.yaml"
+MERGE_YAML = Path(__file__).resolve().parents[2] / "taxonomies" / "HackEye26.1-48.yaml"
 W, H, BLOCK = 1280, 720, 40
 GH, GW = H // BLOCK, W // BLOCK  # 18 x 32
 CELLS = GH * GW  # 576
