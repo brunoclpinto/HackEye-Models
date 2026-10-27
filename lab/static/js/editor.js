@@ -6,6 +6,7 @@ import { Painter } from "./tools.js";
 import { History } from "./history.js";
 import { Picker } from "./picker.js";
 import { SamSession } from "./sam.js";
+import { hashFor } from "./nav.js";
 
 const MAXZ = 32, TOOL_NAMES = { brush: "Brush", erase: "Erase", region: "Region", polygon: "Lasso", sam: "SAM" };
 const painter = new Painter(), history = new History();
@@ -27,7 +28,7 @@ let imgCtx, maskCtx, maskImg, mask32, canvas, ctx, picker, sam, raf = 0, strokeR
 // ---------------------------------------------------------------- init
 export function init() {
   canvas = $("#eCanvas"); ctx = canvas.getContext("2d", { alpha: false });
-  picker = new Picker($("#ePicker"), () => { painter.protect = picker.protect; syncUI(); redraw(); });
+  picker = new Picker($("#ePicker"), $("#eProtect"), () => { painter.protect = picker.protect; syncUI(); redraw(); });
   sam = new SamSession(() => { syncUI(); redraw(); });
   new ResizeObserver(() => onResize()).observe($("#eStage"));
   bindToolbar(); bindCanvas();
@@ -39,6 +40,7 @@ window.__lab = {
   imgToClient: (x, y) => { const r = canvas.getBoundingClientRect(); return { x: r.left + E.vx + (x + 0.5) * E.z, y: r.top + E.vy + (y + 0.5) * E.z }; },
   getPixel: (x, y) => (E.grid ? E.grid[y * E.W + x] : undefined),
 };
+export const currentStem = () => E.stem;
 export const isDirty = () => history.dirty;
 
 // ---------------------------------------------------------------- colour LUT / mask layer
@@ -334,7 +336,7 @@ function preload(stem) { if (stem && stem !== E.stem) assets(stem).catch(() => {
 /** Open a frame. qs = browse filter query string (drives prev/next). */
 export async function show(stem, qs = "", { discard = false } = {}) {
   if (!discard && E.stem && history.dirty) {
-    if (!(await save())) { if (!(await confirmDialog("Saving failed. Discard unsaved edits?", "Discard"))) { window.history.replaceState(null, "", `#edit/${E.stem}?${E.qs}`); return; } }
+    if (!(await save())) { if (!(await confirmDialog("Saving failed. Discard unsaved edits?", "Discard"))) { window.history.replaceState(null, "", hashFor(E.stem, undefined, E.qs)); return; } }
   }
   const seq = ++E.loadSeq;
   $("#eLoading").hidden = false;
@@ -355,6 +357,7 @@ export async function show(stem, qs = "", { discard = false } = {}) {
     history.reset(a.grid, a.W, a.H); E.used.clear(); E.poly = null; strokeRect = null;
     sam.setFrame(stem, a.W, a.H);
     buildLut(); paintRect(0, 0, a.W, a.H);
+    { const pr = new Set(); const seen = new Uint8Array(256); for (let i = 0; i < a.grid.length; i++) seen[a.grid[i]] = 1; seen.forEach((v, id) => v && pr.add(id)); picker.setPresent(pr); }
     E.fitted = true; onResize();
     syncUI();
     if (samAvailable()) sam.prefetch(stem);
@@ -408,7 +411,7 @@ async function revert() {
     await show(E.stem, E.qs, { discard: true });
   } catch { /* toasted */ }
 }
-async function setStatus(st) {
+export async function setStatus(st) {
   if (!E.stem) return;
   try {
     await api(`/api/frames/${encodeURIComponent(E.stem)}/state`, { method: "PUT", body: { status: st } });
@@ -419,7 +422,7 @@ async function setStatus(st) {
 async function go(stem) {
   if (!stem) { toast("No more frames in this filter", "ok", 1500); return; }
   if (!(await leave())) return;
-  location.hash = `#edit/${stem}${E.qs ? "?" + E.qs : ""}`;
+  location.hash = hashFor(stem, undefined, E.qs);
 }
 
 // ---------------------------------------------------------------- view-through-map
@@ -430,17 +433,26 @@ async function refreshMaps() {
     sel.value = [...sel.options].some((o) => o.value === cur) ? cur : "";
   } catch { /* maps optional */ }
 }
+function applyView(pv) {
+  E.viewMap = pv || null;
+  E.viewLut = pv ? Uint8Array.from(pv.lut.map((v) => clamp(v, 0, 255))) : identity();
+  buildLut(); paintRect(0, 0, E.W, E.H);
+}
 async function setViewMap(name) {
-  E.viewMapName = name;
-  if (!name) { E.viewMap = null; E.viewLut = identity(); }
-  else {
+  E.viewMapName = name; E.mapPv = null;
+  if (name) {
     try {
       const m = await api(`/api/maps/${encodeURIComponent(name)}`);
-      const pv = await api("/api/maps/preview", { method: "POST", body: { groups: m.groups } });
-      E.viewMap = pv; E.viewLut = Uint8Array.from(pv.lut.map((v) => clamp(v, 0, 255)));
-    } catch { $("#eMap").value = ""; E.viewMap = null; E.viewLut = identity(); }
+      E.mapPv = await api("/api/maps/preview", { method: "POST", body: { groups: m.groups } });
+    } catch { $("#eMap").value = ""; }
   }
-  buildLut(); paintRect(0, 0, E.W, E.H);
+  if (!E.override) applyView(E.mapPv);
+}
+/** The Taxonomy tab pushes its live map preview here; null restores the Edit tab's selected map. */
+export function setViewPreview(pv) {
+  if (!pv && !E.override) return;
+  E.override = pv || null;
+  applyView(E.override || E.mapPv);
 }
 
 // ---------------------------------------------------------------- toolbar / UI sync
@@ -469,8 +481,9 @@ function bindToolbar() {
   $$("#eStatus button").forEach((b) => b.addEventListener("click", () => setStatus(b.dataset.st)));
   $("#ePrev").addEventListener("click", () => go(E.meta?.prev));
   $("#eNext").addEventListener("click", () => go(E.meta?.next));
-  $("#eBack").addEventListener("click", async () => { if (await leave()) location.hash = `#browse${E.qs ? "?" + E.qs : ""}`; });
-  $("#eBar").addEventListener("click", (e) => { if (e.target.closest("button")) e.target.closest("button").blur(); });
+  $("#eNote").addEventListener("change", (e) => { if (!E.meta) return; E.meta.note = e.target.value; api(`/api/frames/${encodeURIComponent(E.stem)}/state`, { method: "PUT", body: { note: E.meta.note } }).catch(() => {}); });
+  initHandle();
+  $("#pane-edit").addEventListener("click", (e) => { if (e.target.closest("button")) e.target.closest("button").blur(); });
 }
 function syncUI() {
   $$("#eTools button").forEach((b) => { b.classList.toggle("on", b.dataset.tool === E.tool); if (b.dataset.tool === "sam") { b.disabled = !samAvailable(); b.title = samAvailable() ? "SAM2 (S)" : "SAM unavailable"; } });
@@ -483,16 +496,17 @@ function syncUI() {
   $("#ePrev").disabled = !E.meta?.prev; $("#eNext").disabled = !E.meta?.next;
   const m = E.meta;
   const info = $("#eInfo");
+  $("#eSamInfo").textContent = E.tool === "sam" ? sam.info : "";
   if (!m) { info.replaceChildren(); return; }
   info.replaceChildren(
     el("b", { class: "mono" }, E.stem),
+    el("span", { class: `badge ${m.status}` }, m.status),
     el("span", { class: "muted" }, `${m.clip ?? ""} ${m.t_sec != null ? Number(m.t_sec).toFixed(1) + " s" : ""}`),
     el("span", { class: "muted" }, `conf ${m.conf_mean != null ? Number(m.conf_mean).toFixed(2) : "-"}  low ${m.lowconf_frac != null ? Number(m.lowconf_frac).toFixed(2) : "-"}`),
-    el("span", { class: `badge ${m.status}` }, m.status),
-    el("span", { class: "muted" }, m.index != null ? `${m.index + 1} / ${m.total}` : ""),
+    el("span", { class: "muted" }, m.index != null && m.index >= 0 ? `${m.index + 1} / ${m.total}` : ""),
     el("span", { class: "muted" }, `edits ${m.edit_count ?? 0}`),
-    history.dirty ? el("span", { class: "dirty" }, "unsaved") : "",
-    el("input", { type: "text", placeholder: "note", value: m.note || "", size: 30, onchange: (e) => { m.note = e.target.value; api(`/api/frames/${encodeURIComponent(E.stem)}/state`, { method: "PUT", body: { note: m.note } }).catch(() => {}); } }));
+    history.dirty ? el("span", { class: "dirty" }, "unsaved") : "");
+  if (document.activeElement !== $("#eNote")) $("#eNote").value = m.note || "";
   syncToolStatus();
 }
 function syncStatus() {
@@ -509,7 +523,6 @@ export function onKey(e) {
     if (lk === "z") { undoRedo(e.shiftKey); return true; }
     if (lk === "y") { undoRedo(true); return true; }
     if (lk === "s") { save(); return true; }
-    if (/^[1-4]$/.test(k)) { setStatus(["ok", "fix", "drop", "todo"][Number(k) - 1]); return true; }
     return false;
   }
   if (e.altKey) return false;
@@ -532,13 +545,43 @@ export function onKey(e) {
     case "x": picker.swap(); return true;
     case "=": case "+": E.cw && zoomAt(E.cw / 2, E.ch / 2, E.z * 1.5); return true;
     case "-": E.cw && zoomAt(E.cw / 2, E.ch / 2, E.z / 1.5); return true;
-    case "n": go(E.meta?.next); return true;
-    case "p": go(E.meta?.prev); return true;
+    case "n": case "arrowright": go(E.meta?.next); return true;
+    case "p": case "arrowleft": go(E.meta?.prev); return true;
     case "/": picker.focusSearch(); return true;
     case "tab": if (E.tool === "sam") { sam.cycle(e.shiftKey ? -1 : 1); return true; } return false;
     case "enter": if (E.tool === "polygon" && E.poly) { closePoly(); return true; } if (E.tool === "sam" && sam.has) { applySam(); return true; } return false;
     case "escape": if (E.poly) { E.poly = null; redraw(); return true; } if (E.tool === "sam") { sam.reset(); return true; } return false;
   }
   return false;
+}
+export const step = (dir) => go(dir < 0 ? E.meta?.prev : E.meta?.next);
+/** The browse filter changed: refresh prev/next/index for the current frame without reloading it. */
+export async function setFilter(qs) {
+  E.qs = qs;
+  if (!E.stem) return;
+  try {
+    const m = await api(`/api/frames/${encodeURIComponent(E.stem)}${qs ? "?" + qs : ""}`, { quiet: true });
+    Object.assign(E.meta, { prev: m.prev, next: m.next, index: m.index, total: m.total });
+    syncUI();
+    document.dispatchEvent(new CustomEvent("frame-opened", { detail: { stem: E.stem, index: m.index } }));
+  } catch { Object.assign(E.meta, { prev: null, next: null, index: -1 }); syncUI(); }
+}
+function initHandle() {
+  const stage = $("#eStage"), h = $("#eHandle");
+  let saved = 0;
+  try { saved = Number(localStorage.getItem("lab.imgH")) || 0; } catch { /* ignore */ }
+  const setH = (v, persist) => {
+    v = clamp(Math.round(v), 200, Math.max(300, window.innerHeight * 0.96)); stage.style.height = v + "px";
+    if (persist) { try { localStorage.setItem("lab.imgH", String(v)); } catch { /* ignore */ } }
+  };
+  setH(saved || clamp(window.innerHeight - 400, 320, 760), false);
+  h.addEventListener("pointerdown", (e) => {
+    e.preventDefault(); h.setPointerCapture(e.pointerId); h.classList.add("drag");
+    const y0 = e.clientY, h0 = stage.getBoundingClientRect().height;
+    const mv = (ev) => setH(h0 + ev.clientY - y0, false);
+    const up = (ev) => { h.classList.remove("drag"); h.removeEventListener("pointermove", mv); h.removeEventListener("pointerup", up); setH(h0 + ev.clientY - y0, true); };
+    h.addEventListener("pointermove", mv); h.addEventListener("pointerup", up);
+  });
+  h.addEventListener("dblclick", () => { try { localStorage.removeItem("lab.imgH"); } catch { /* ignore */ } setH(clamp(window.innerHeight - 400, 320, 760), false); });
 }
 export const refreshMeta = async () => { await loadMeta(); syncUI(); };

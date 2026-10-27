@@ -3,17 +3,24 @@
 Run through run.sh: a throwaway lab on a 20-frame fixture (3 frames with nature snow, id 62; both splits).
 
 HOOKS AND data-testid ATTRIBUTES THE FRONTEND MUST PROVIDE (W2). Tests use these and nothing else (plus the contract's keys:
-B E R L S tools, Q shape, Ctrl+Z / Ctrl+Shift+Z undo/redo, Ctrl+S save, Enter/Esc, 1-4 tag in Browse, N/P next/prev).
+B E R L S tools, Q shape, Ctrl+Z / Ctrl+Shift+Z undo/redo, Ctrl+S save, Enter/Esc, Shift+1..4 tag, N/P and Left/Right next/prev).
 
 Global hook (editor page), `window.__lab`:
   state()            -> {stem, zoom, tool, cls, dirty, samCandidates}   zoom = display zoom factor, tool = 'brush'|'erase'|
                         'region'|'polygon'|'sam', cls = active base id, dirty = unsaved edits, samCandidates = number of SAM masks shown
   imgToClient(x, y)  -> {x, y}  client (viewport) coordinates of the CENTRE of image pixel (x, y)
   getPixel(x, y)     -> base id of the editor's mask grid at that pixel
-Tabs / status bar:  tab-browse tab-edit tab-taxonomy tab-rules      sam-status (data-available="true|false")
-Browse:             filter-split filter-clip filter-status filter-class (all <select>, option value = filter value; for the class
+Layout (v26.1.1, one page: Browse group, Image group, Work group; tabs Edit | Taxonomy | Rules, default Edit; no Browse tab):
+                    tab-edit tab-taxonomy tab-rules      sam-status (data-available="true|false")
+                    group-<id> (every group/sub-group; attr data-collapsed="true|false"; ids browse image work edit-classes edit-tools
+                    edit-protect edit-view edit-frame tax-classes tax-map tax-save rules-rule rules-result hier-<hier>)
+                    group-toggle (the header button inside a group; the group's own is the first one)
+Browse (always visible):
+                    filter-split filter-clip filter-status filter-class (all <select>, option value = filter value; for the class
                     filter the value is the base id)   frame-count (text = total of the current filter)
-                    frame-card (one per visible thumbnail; attrs data-stem data-split data-status; clicking selects)
+                    carousel (the horizontal strip)  frame-card (one per visible thumbnail in it; attrs data-stem data-split data-status;
+                    clicking opens the frame)  tag-ok tag-fix tag-drop tag-todo (buttons: tag the current frame; Shift+1..4 too)
+                    Keys: Left/Right (or P/N) step, Home/End first/last frame
 Editor:             editor-canvas (the display canvas)   editor (root; data-dirty="true|false")
                     tool-brush tool-erase tool-region tool-polygon tool-sam (buttons)
                     brush-size (<input>)   brush-shape (<select> values round|square)
@@ -164,6 +171,8 @@ def open_editor(page, stem):
 
 
 def to_client(page, x, y):
+    # the page scrolls (picking a class chip below the image scrolls it away): bring the canvas back first
+    page.evaluate("document.querySelector('[data-testid=\"editor-canvas\"]').scrollIntoView({block: 'nearest'})")
     return page.evaluate("([x, y]) => window.__lab.imgToClient(x, y)", [x, y])
 
 
@@ -172,8 +181,11 @@ def pixel(page, x, y):
 
 
 def pick_class(page, cid):
-    page.fill(tid("picker-search"), "")
+    # chips of hierarchy groups without pixels in the frame start collapsed; searching by id expands the matching group
+    page.fill(tid("picker-search"), str(cid))
     page.locator(f'{tid("picker-item")}[data-id="{cid}"]').first.click()
+    page.fill(tid("picker-search"), "")
+    page.evaluate("document.activeElement.blur()")        # keys (B R L S ...) must not go into the search box
     assert state(page)["cls"] == cid
 
 

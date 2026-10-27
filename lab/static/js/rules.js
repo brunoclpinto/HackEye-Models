@@ -2,6 +2,7 @@
 import { api } from "./api.js";
 import { $, el, toast, confirmDialog, pollJob, renderJob, fmtPx } from "./util.js";
 import { S, on, clsName } from "./store.js";
+import { hashFor } from "./nav.js";
 
 let last = null, ready = false;
 
@@ -41,7 +42,7 @@ async function dry() {
     $("#rApply").disabled = r.frames === 0;
     $("#rResult").replaceChildren(el("div", { "data-testid": "rule-result", dataset: { frames: r.frames, pixels: r.pixels } },
       el("p", {}, el("b", {}, `${r.frames} frames, ${fmtPx(r.pixels)} px`), ` would change from ${clsName(b.from)} to ${clsName(b.to)}.`),
-      el("div", { class: "thumbs" }, (r.sample || []).slice(0, 20).map((s) => el("img", { src: `/api/frames/${encodeURIComponent(s)}/thumb.jpg`, title: s, loading: "lazy", onclick: () => { location.hash = `#edit/${s}`; } })))));
+      el("div", { class: "thumbs" }, (r.sample || []).slice(0, 20).map((s) => el("img", { src: `/api/frames/${encodeURIComponent(s)}/thumb.jpg`, title: s, loading: "lazy", onclick: () => { location.hash = hashFor(s); } })))));
   } catch { /* toasted */ }
 }
 async function apply() {

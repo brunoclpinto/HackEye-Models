@@ -1,4 +1,4 @@
-# Models Lab — contracts (v26.1.0, current rules)
+# Models Lab — contracts (v26.1.1, current rules)
 
 The history, the user's decisions and the reasons behind each rule are in [`docs/DECISIONS.md`](docs/DECISIONS.md). The
 approved plans are in [`docs/plans/`](docs/plans/).
@@ -164,17 +164,38 @@ reserved group key `__ignore__` whose members map to 255)
 ## 6. Frontend (`lab/static/`, vanilla ES modules, no build step)
 **Files:**
 - `index.html`, `style.css` (copy the token block from `~/repos/HackEye/RnD/lab/static/style.css:1-13` and add the rest);
-- `app.js`: the router and tabs **Browse | Edit | Taxonomy | Rules**, URL hash state such as `#edit/<stem>?<filter>`, and a
-  status bar with the version and SAM state;
+- `app.js`: the router, the menu tabs **Edit | Taxonomy | Rules** (default Edit), URL hash state `#<tab>/<stem>?<filter>`
+  (the frame and filter carry across tabs), and a status bar with the version and SAM state;
+- `js/groups.js` (collapsible groups) and `js/nav.js` (the current tab, frame and filter, and hash building);
 - `js/api.js` (copy the HackEye Lab's `api.js` as is), `js/util.js` (toast, debounce);
 - `js/browser.js`, `js/editor.js`, `js/tools.js`, `js/history.js`, `js/picker.js`, `js/sam.js`, `js/taxonomy.js`,
   `js/rules.js`.
 
-**Browse:**
-- Filter bar (split, clip, status, conf range, low range, class, edited, sort).
-- A virtual-scrolled grid of thumbnails with the stem, conf and a status badge.
-- Click selects; Enter or double-click opens the editor. Keys `1 ok`, `2 fix`, `3 drop`, `4 todo` tag the selection and
-  arrows move it.
+**Page layout (v26.1.1), one page, top to bottom:**
+1. A header with the title, the menu tabs Edit | Taxonomy | Rules, and `?`.
+2. **Browse group (permanent; not a tab):**
+   - The filter bar: split, clip, status, conf range, low range, class with min px, edited, sort, reset, and the count.
+   - A horizontal, virtual-scrolled **carousel** of thumbnails over the filtered list. The current frame is highlighted
+     and centred. Cards show the short name (`C-0001 · 000215`, full stem in the tooltip), conf and a status badge.
+   - Tag buttons ok, fix, drop and todo act on the current frame, plus first/prev/next/last buttons.
+   - Click opens a frame; the wheel or a drag scrolls the strip.
+3. **Image group:** the editor canvas for the current frame, shown on **every** tab.
+   - Its height is resizable with a drag handle that's remembered; double-click resets it to the viewport height minus
+     400 px.
+   - When collapsed, the header still shows the stem, status, edits and clip info.
+4. **Work group:** the selected tab's controls, in sub-groups:
+   - Edit: Classes · Tools · Protect · View · Frame;
+   - Taxonomy: Classes · Map builder · Save;
+   - Rules: Rule · Result.
+5. The status bar.
+
+**Collapsing:** every group and sub-group, including each hierarchy group in the class picker, collapses from its header.
+The state is kept in `localStorage` per group id, inside try/catch. Picker hierarchies with no pixels in the frame start
+collapsed.
+
+**Navigation keys (all tabs, when focus is not in an input):** `←`/`→` and `N`/`P` step through the carousel (autosaving
+when dirty), `Home`/`End` jump to the first or last frame, and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by
+`e.code`).
 
 **Edit:**
 - **Rendering:**
@@ -189,8 +210,9 @@ reserved group key `__ignore__` whose members map to 255)
   - `M` toggles the mask and `O` switches to outline mode, which draws a pixel wherever the class differs from the
     right or bottom neighbour. An opacity slider sits in the toolbar.
 - **Readout:** x, y, base id and name under the cursor, plus the merged name when view-through-map is on.
-- **Picker (`picker.js`):** every class from `/api/taxonomy`, grouped by `hier`, with a search box (`/` focuses it).
-  - Recents 1–9: digit keys pick from recents in the editor (they tag only in the Browse tab).
+- **Picker (`picker.js`, Edit → Classes):** every class from `/api/taxonomy` as compact chips, grouped by `hier`, each
+  group collapsible, with a search box (`/` focuses it and opens the matching groups).
+  - Recents 1–9: digit keys always pick from recents.
   - `Alt+click` is the eyedropper.
   - The active class is shown with its swatch.
 - **Protect source class:** a dropdown (none, or a class). When it's set, every tool changes only pixels of that class.
@@ -214,10 +236,10 @@ reserved group key `__ignore__` whose members map to 255)
   - `Ctrl+S` saves: the grid is encoded to a PNG (canvas with R=G=B=id, A=255), then `PUT`.
   - Leaving the frame autosaves (on `N`/`P` or navigation) when it's dirty.
   - A "Revert to original" button asks for confirmation.
-  - `N`/`P` move through the Browse filter, and the next two frames' image and mask are preloaded.
+  - `N`/`P` (or `←`/`→`) move through the carousel, and the next two frames' image and mask are preloaded.
 - **View-through-map:** a map selector; when it's set, the overlay is coloured by `preview.lut` and editing still works in
   base ids.
-- **Status keys:** `Ctrl+1..4` set ok, fix, drop and todo.
+- **Status keys:** `Shift+1`–`4` (see Navigation keys). `Cmd+digit` is left to the browser.
 
 **Taxonomy:**
 - **Left: the class table** (swatch, id, name, hier, frames, pixel share, custom badge, parent).
@@ -232,10 +254,15 @@ reserved group key `__ignore__` whose members map to 255)
   - A name input that is **empty by default**, with a placeholder hint `HackEye<yy.major.minor>-<N>`.
   - "Save map" and "Save as new dataset" (export); the export shows job progress and the verify result.
 
-**Rules:** from, to, filter, then Dry run, which shows counts and sample thumbnails; Apply shows job progress.
+**Taxonomy and the image:** while the Taxonomy tab is open, the live map preview colours the image (view-through-map).
+Leaving the tab restores the map chosen under Edit → View.
+
+**Rules:** from, to, filter, then Dry run, which shows counts and sample thumbnails (clicking one opens it in the image);
+Apply shows job progress.
 
 **Additional keys:** `G` toggles the pixel grid, `X` swaps the active and secondary class, `+`/`-` zoom, and `?` shows every shortcut.
-**Test hooks:** the `data-testid` attributes listed in `lab/tests/e2e/conftest.py`, and `window.__lab` with `state()`,
+**Test hooks:** the `data-testid` attributes listed in `lab/tests/e2e/conftest.py` (v26.1.1 adds `carousel`,
+`tag-ok|fix|drop|todo`, `group-<id>` with `data-collapsed`, and `group-toggle`; `tab-browse` is gone), and `window.__lab` with `state()`,
 `imgToClient(x,y)` and `getPixel(x,y)`. Keep them stable, because the E2E suite depends on them.
 **Merge colour:** the colour chosen in the map builder only shows on the card swatch. An exported merged class takes its
 first member's colour, because the map format has no colour field.
@@ -281,7 +308,7 @@ first member's colour, because the map format has no colour field.
 
 ## 9. Versions and version-scoped content (`lab/VERSION`, `lab/versioning.py`)
 - Versions are `v<YY>.<major>.<minor>`, with the minor dropped when 0 in prose. `lab/VERSION` holds the current one; it is
-  `v26.1.0` for milestone **lab26.1** (mask correction, SAM2, taxonomy builder).
+  `v26.1.1` for milestone **lab26.1** (mask correction, SAM2, taxonomy builder).
 - Each milestone has its own branch (`lab26.1`). After it is squash-merged into `main`, the branch is deleted locally and
   remotely.
 - **At startup** `check_version` compares `lab/VERSION` with `<root>/lab/.lab-version`:

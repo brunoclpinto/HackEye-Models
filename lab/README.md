@@ -4,7 +4,7 @@ A web tool for HackEye datasets. It lets you browse and tag frames, correct mask
 click-to-outline), run bulk class rules, and build taxonomies: create, split, merge and expand classes, then save a merge
 map and export it as a new dataset. The current rules (API, data model, safety) are in [CONTRACTS.md](CONTRACTS.md), the history in
 [docs/DECISIONS.md](docs/DECISIONS.md), and the approved plans plus the milestone status in [docs/plans/](docs/plans/).
-The version is in `lab/VERSION` (v26.1.0, milestone **lab26.1**, developed on branch `lab26.1`).
+The version is in `lab/VERSION` (v26.1.1, milestone **lab26.1**, developed on branch `lab26.1`).
 
 **Open it at `https://megabeast.tail97a14.ts.net:8443/`** (tailnet only). That address is `tailscale serve --https=8443`
 pointing at `127.0.0.1:8766`.
@@ -28,8 +28,13 @@ docker compose stop sam           # frees the GPU; the lab keeps working, with t
 
 ## Workflow
 
-1. **Browse.** Filter by split, clip, status, confidence, class present or edited. Tag frames with `1` ok, `2` fix, `3` drop
-   and `4` todo. `drop` is only a tag; deleting frames is a separate, explicit step.
+**Layout (one page):** Browse sits permanently at the top: filters, plus a carousel of the filtered frames. Below it
+is the image, then the work panel of the selected menu tab, **Edit | Taxonomy | Rules** (default Edit). Every group
+collapses from its header, and the image height can be dragged.
+
+1. **Browse (top).** Filter by split, clip, status, confidence, class present or edited. Step with `←`/`→` (or `N`/`P`)
+   and jump with `Home`/`End`. Tag with `Shift+1` ok, `Shift+2` fix, `Shift+3` drop, `Shift+4` todo, or the buttons.
+   `drop` is only a tag; deleting frames is a separate, explicit step.
 2. **Edit.** Corrections are saved **into the master masks**: P-mode PNGs written atomically. **Revert** restores the
    original pseudo-label.
 3. **Rules.** "Class A → class B" over a filter. Run a dry run first; Apply backs up and logs each frame. The snow → water
@@ -56,7 +61,7 @@ docker compose stop sam           # frees the GPU; the lab keeps working, with t
 | `1`–`9`, `/`, Alt+click, Shift+Alt+click | recent classes, search classes, eyedropper, set the protect class |
 | SAM: click, right-click, drag, `Tab`, `Enter`, `Esc` | positive point, negative point, box, next candidate, apply, clear |
 | `Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`, `Ctrl/Cmd+S` | undo, redo, save (moving to another frame autosaves) |
-| `N` / `P`, `Ctrl/Cmd+1`–`4` | next or previous frame in the browse filter; set ok, fix, drop, todo |
+| `←` `→` / `N` `P`, `Home` `End`, `Shift+1`–`4` | next or previous frame in the carousel; first or last frame; tag ok, fix, drop, todo |
 
 **Protect source class** applies to every tool: only pixels of that class change. It's the main aid for boundaries, e.g.
 painting curb only over sidewalk.
@@ -72,7 +77,10 @@ docker compose run --rm --entrypoint python lab -m pytest lab/tests datasets/com
 `run.sh` copies 20 real frames to `/runs/lab-e2e/` and runs a throwaway lab on port 8767, so the master never receives
 test edits. It cleans up after itself.
 
-## Known limits (v26.1.0)
+## Known limits (v26.1.1)
+
+- On a 900 px high screen the work panel starts below the fold. Use the recents (`1`–`9`) or collapse or shrink the
+  image group.
 
 - A colour chosen when merging is shown only in the builder. An exported class takes the colour of its first (largest)
   member, as in `HackEye26.1-48.yaml`.

@@ -98,3 +98,38 @@ added: create new classes, merge and expand them, and save as a new dataset yaml
   the merge.
 - Untested so far: long real editing sessions, SAM quality on thin structures such as curbs and poles, and performance with
   many custom classes.
+
+## v26.1.1 — single-page layout: permanent browse with carousel, image, work panel (branch `lab26.1`)
+**Prompt.** The user asked (2026-10-27): "browse is not a menu option, its permanent with filters at top, carroussel
+navigation. below we have the image. below image we have the selected menu option work stuff. menu order is correct and
+defaults to edit. each group should be collapsable."
+
+**Decisions with the user:**
+- Browse is no longer a tab. It's a permanent group at the top: filters plus a carousel.
+- Below it is the image, then the selected tab's work panel. The menu is Edit | Taxonomy | Rules, and Edit is the default.
+- Every group is collapsible.
+- **Defaults proposed by mail and agreed by the user in the terminal:**
+  - the image stays visible on all tabs;
+  - tagging moves to `Shift+1`–`4`, since digits pick recent classes and `Cmd+digit` belongs to the Mac browser;
+  - the class picker moves below the image as compact chips grouped by hierarchy.
+
+**Worker choices (Sonnet):**
+- The hash is `#<tab>/<stem>?<filter>`, so the frame and filter carry across tabs.
+- The live Taxonomy preview colours the image only while that tab is open.
+- The image height defaults to the viewport height minus 400 px; the drag handle is remembered and a double-click resets it.
+- Picker hierarchies with no pixels in the frame start collapsed, and searching opens the matches.
+- New files `js/groups.js` and `js/nav.js`.
+- E2E:
+  - `test_browse.py` was rewritten (filter and tag, carousel navigation, collapse that persists after a reload);
+  - helpers `pick_class` and `to_client` were added;
+  - no result assertion was weakened.
+
+**Opus review (screenshots at 1440×900 and 1920×1080):** the layout matches the request. Carousel cards cut off the start of
+the stem, so every card read "Chest-center…". They now show `C-0001 · 000215`, with the full stem in the tooltip.
+
+**Result:** 39 unit tests and 12 E2E tests pass (the SAM test ran). The API is unchanged.
+
+**Known / possible issues:**
+- At 900 px high, the Work panel starts below the fold, so picking a class chip means scrolling. Recents (`1`–`9`), a
+  collapsed or shorter image group, or a later "sticky image" option reduce this.
+- `Cmd+digit` can't be used for tagging on the Mac, so tagging is on `Shift+1`–`4`.

@@ -2,6 +2,7 @@
 import { api } from "./api.js";
 import { $, el, toast, debounce, dialog, confirmDialog, rgbCss, rgbHex, hexRgb, pct, fmtPx, pollJob, renderJob } from "./util.js";
 import { S, loadTaxonomy, on } from "./store.js";
+import * as editor from "./editor.js";
 
 const IGN = "__ignore__", NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const T = { selGroups: new Set(), savedSig: "", checked: new Set(), groups: {}, colors: {}, preview: null, filter: "", mapName: "" };
@@ -23,11 +24,15 @@ export function init() {
   $("#tName").placeholder = "HackEye<yy.major.minor>-<N>";
 }
 
+let active = false;
 export async function show() {
+  active = true; if (T.preview) editor.setViewPreview(T.preview);
   await refreshMapList();
   renderTable(); renderGroups();
   if (!T.preview) schedulePreview();
 }
+
+export function hide() { if (active) { active = false; editor.setViewPreview(null); } }
 
 async function refreshMapList() {
   try {
@@ -199,6 +204,7 @@ const schedulePreview = debounce(async () => {
   try { T.preview = await api("/api/maps/preview", { method: "POST", body: { groups: T.groups }, quiet: true }); }
   catch (e) { toast(`Preview failed: ${e.message}`); renderGroups(); renderTable(); return; }
   renderGroups(); renderTable();
+  if (active) editor.setViewPreview(T.preview);
 }, 150);
 
 function renderGroups() {
