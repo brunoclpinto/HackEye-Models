@@ -186,3 +186,21 @@ stroke rollback, the SAM toggle, and no horizontal scroll at 428 px.
   - double-tap timing;
   - the iOS toolbar and safe areas.
 - The tests synthesise multi-touch with PointerEvents rather than real hardware.
+
+**Follow-up: outline (same version, v26.1.2, at the user's request).** "i don't want binding box, i need boundary lines like
+in hackeye lab."
+- The rectangle is gone. The selection is drawn by contours traced along pixel edges, the outer boundary plus holes,
+  in the HackEye Lab's outline style: a dark under-stroke, a 3 px class-colour stroke and a ~15% tint. The label sits at the
+  top-left of the contour extent.
+- `selection` gains `contours` and `edgeLen`.
+- New E2E checks:
+  - `edgeLen` equals the 4-neighbour boundary edge count computed from the mask;
+  - a region with a hole has at least 2 contours;
+  - canvas sampling shows the stroke on the boundary and only the tint inside.
+- **Screenshots:**
+  - the sidewalk on `Chest-center-0001_000000`: 3 contours, the manholes outlined as holes;
+  - a 10× close-up: the line follows the pixel steps;
+  - the iPhone emulation with a car selected.
+- **Possible tuning after the user's real-phone test:** on small items at phone size, the dark under-stroke can look heavier
+  than the class colour on dark classes such as car blue.
+- Plan: [`plans/v26.1.2-followup-outline.md`](plans/v26.1.2-followup-outline.md). Tests: 39 unit, 29 E2E.

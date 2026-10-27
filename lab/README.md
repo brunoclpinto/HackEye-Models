@@ -54,7 +54,7 @@ collapses from its header, and the image height can be dragged.
 
 | Keys | Action |
 |---|---|
-| `V` | Inspect (the default tool): click or tap an item to get its box and label (class · id · px); `Esc` clears, `Enter` relabels it to the active class |
+| `V` | Inspect (the default tool): click or tap an item to outline its boundary (holes included) with a label (class · id · px); `Esc` clears, `Enter` relabels it to the active class |
 | `B` / `E` / `R` / `L` / `S` | brush / erase to secondary class / region relabel (Shift: whole class) / polygon-lasso / SAM |
 | `[` `]`, `Q`, `X` | brush size, round or square, swap active and secondary class |
 | wheel, Space-drag or middle-drag, `F`, `0`, `+` `-` | zoom to the cursor (up to 32×), pan, fit, 1:1, zoom |
@@ -82,7 +82,7 @@ test edits. It cleans up after itself.
 
 - **Two fingers:** pinch to zoom, move to pan.
 - **One finger, Inspect tool:** at fit size it scrolls the page; once zoomed in it pans the image. A tap selects an item
-  (box plus label), and a double-tap toggles fit and 4×.
+  (boundary outline plus label), and a double-tap toggles fit and 4×.
 - **Editing tools:** they work with one finger. A second finger cancels the stroke in progress. In SAM, `− point` makes
   the next taps negative.
 - **On a phone,** Browse starts collapsed, but Prev/Next and the tags stay in its header.

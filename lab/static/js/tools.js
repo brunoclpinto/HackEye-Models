@@ -105,7 +105,7 @@ export class Painter {
       if (py > 0 && !mask[i - W] && grid[i - W] === id) { mask[i - W] = 1; stack[sp++] = i - W; n++; }
       if (py < H - 1 && !mask[i + W] && grid[i + W] === id) { mask[i + W] = 1; stack[sp++] = i + W; n++; }
     }
-    return { id, n, bbox: [x0, y0, x1, y1], mask };
+    return { id, n, bbox: [x0, y0, x1, y1], mask, ...traceContours(mask, W, [x0, y0, x1, y1]) };   // contours cached with the selection
   }
   touch(x, y) {
     if (x < this.x0) this.x0 = x; if (x > this.x1) this.x1 = x;
@@ -145,4 +145,49 @@ export class Painter {
     }
     return changed;
   }
+}
+
+/**
+ * Trace the boundary of a region bitmap into closed contours along pixel edges (outer boundary + holes).
+ * Edges are directed with the region on the right; at pinch vertices the rightmost turn keeps 4-connected parts separate.
+ * Collinear runs are merged. Returns {contours: [Float32Array [x0,y0,x1,y1,...] in image pixel-corner coords], edgeLen}.
+ */
+export function traceContours(mask, W, bbox) {
+  const [bx0, by0, bx1, by1] = bbox, w = bx1 - bx0 + 1, h = by1 - by0 + 1, VW = w + 1;
+  const inR = (x, y) => x >= 0 && y >= 0 && x < w && y < h && mask[(by0 + y) * W + bx0 + x] === 1;
+  const out = new Uint8Array(VW * (h + 1) * 4);        // per vertex, one bit-byte per direction: 0:+x 1:+y 2:-x 3:-y
+  let edgeLen = 0;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (!mask[(by0 + y) * W + bx0 + x]) continue;
+      if (!inR(x, y - 1)) { out[(y * VW + x) * 4 + 0] = 1; edgeLen++; }              // top:    (x,y)     -> (x+1,y)
+      if (!inR(x + 1, y)) { out[(y * VW + x + 1) * 4 + 1] = 1; edgeLen++; }          // right:  (x+1,y)   -> (x+1,y+1)
+      if (!inR(x, y + 1)) { out[((y + 1) * VW + x + 1) * 4 + 2] = 1; edgeLen++; }    // bottom: (x+1,y+1) -> (x,y+1)
+      if (!inR(x - 1, y)) { out[((y + 1) * VW + x) * 4 + 3] = 1; edgeLen++; }        // left:   (x,y+1)   -> (x,y)
+    }
+  }
+  const DX = [1, 0, -1, 0], DY = [0, 1, 0, -1], contours = [];
+  for (let vy = 0; vy <= h; vy++) {
+    for (let vx = 0; vx <= w; vx++) {
+      for (let d0 = 0; d0 < 4; d0++) {
+        if (!out[(vy * VW + vx) * 4 + d0]) continue;
+        const pts = [];
+        let x = vx, y = vy, d = d0, last = -1;
+        for (;;) {
+          out[(y * VW + x) * 4 + d] = 0;
+          if (d !== last) { pts.push(bx0 + x, by0 + y); last = d; }                 // corner: direction changes
+          x += DX[d]; y += DY[d];
+          if (x === vx && y === vy) break;                                          // back at the start vertex: loop closed
+          let nd = -1;
+          for (const t of [(d + 1) & 3, d, (d + 3) & 3]) if (out[(y * VW + x) * 4 + t]) { nd = t; break; }
+          if (nd < 0) break;                                                         // safety: dangling edge
+          d = nd;
+        }
+        // the start vertex may itself be a collinear point: drop it when the first and last segments run the same way
+        if (pts.length > 4 && d === d0) pts.splice(0, 2);
+        contours.push(Float32Array.from(pts));
+      }
+    }
+  }
+  return { contours, edgeLen };
 }

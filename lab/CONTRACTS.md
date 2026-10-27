@@ -222,9 +222,12 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
 - **Inspect (`V`, the default tool; the only tool on the Taxonomy and Rules tabs):**
   - A click or tap selects the 4-connected region of the class under the pointer (`Painter.select`, which changes
     nothing).
-  - **Box** (HackEye Lab style): a 3 px stroke in the class colour, drawn in screen space with a thin dark outer stroke,
-    plus a ~15% tint of the region.
-  - **Label tag** filled with the class colour, above the box's top-left corner (inside when there's no room), clamped:
+  - **Boundary lines** (HackEye Lab outline style; **no bounding box**):
+    - The region bitmap is traced into closed contours along pixel edges (`traceContours` in `tools.js`): the outer
+      boundary plus every hole, with collinear runs merged, traced once per selection.
+    - They are drawn in screen space: a dark under-stroke of about 5 px at 60% alpha, then a 3 px stroke in the class
+      colour with round joins, plus a ~15% tint of the region.
+  - **Label tag** filled with the class colour, above the top-left of the contour extent (inside when there's no room), clamped:
     `<name> · id <id> · <N> px`, plus ` · <merged name>` when view-through-map is on. The text is dark or light by luminance.
   - The selection also shows in the Image header and the status bar.
   - It clears on `Esc`, an edit, undo or redo, or a frame change.
@@ -293,7 +296,7 @@ Apply shows job progress.
 **Test hooks:** the `data-testid` attributes listed in `lab/tests/e2e/conftest.py` (v26.1.1 adds `nav-prev`,
 `nav-next`, `nav-pos` with `data-index` and `data-total`, `tag-ok|fix|drop|todo`, `group-<id>` with `data-collapsed`, and
 `group-toggle`; v26.1.2 adds `tool-inspect`, `sam-negative` and `selection-label`, `selection` in `state()`
-(`{id, px, bbox:[x0,y0,x1,y1] inclusive, label}` or null) and `clientToImg`; `tab-browse`, `carousel` and `frame-card` are gone), and `window.__lab` with `state()`,
+(`{id, px, bbox:[x0,y0,x1,y1] inclusive, label, contours, edgeLen}` or null) and `clientToImg`; `tab-browse`, `carousel` and `frame-card` are gone), and `window.__lab` with `state()`,
 `imgToClient(x,y)` and `getPixel(x,y)`. Keep them stable, because the E2E suite depends on them.
 **Merge colour:** the colour chosen in the map builder only shows on the card swatch. An exported merged class takes its
 first member's colour, because the map format has no colour field.

@@ -37,7 +37,7 @@ export function init() {
 }
 window.__lab = {
   state: () => ({ stem: E.stem, zoom: E.z, tool: E.tool, cls: picker?.active, dirty: history.dirty, samCandidates: sam ? sam.cands.length : 0,
-    selection: E.sel ? { id: E.sel.id, px: E.sel.n, bbox: [...E.sel.bbox], label: selText() } : null }),
+    selection: E.sel ? { id: E.sel.id, px: E.sel.n, bbox: [...E.sel.bbox], label: selText(), contours: E.sel.contours.length, edgeLen: E.sel.edgeLen } : null }),
   imgToClient: (x, y) => { const r = canvas.getBoundingClientRect(); return { x: r.left + E.vx + (x + 0.5) * E.z, y: r.top + E.vy + (y + 0.5) * E.z }; },
   clientToImg: (cx, cy) => { const r = canvas.getBoundingClientRect(), fx = (cx - r.left - E.vx) / E.z, fy = (cy - r.top - E.vy) / E.z; return { x: Math.floor(fx), y: Math.floor(fy), fx, fy }; },
   getPixel: (x, y) => (E.grid ? E.grid[y * E.W + x] : undefined),
@@ -154,20 +154,26 @@ function syncSel() {
   l.hidden = !t; l.textContent = t;
   syncToolStatus();
 }
-/** HackEye-Lab style box + label tag (screen space, crisp at any zoom). */
+/** HackEye-Lab style item outline (contours along pixel edges, holes included) + label tag; screen space, crisp at any zoom. */
 function drawSel(sx, sy) {
-  const [x0, y0, x1, y1] = E.sel.bbox, col = selColor(), css = rgbCss(col);
-  const X = sx(x0), Y = sy(y0), w = (x1 - x0 + 1) * E.z, h = (y1 - y0 + 1) * E.z;
+  const [x0, y0] = E.sel.bbox, col = selColor(), css = rgbCss(col);
+  const X = sx(x0), Y = sy(y0);
   ctx.save();
-  ctx.lineJoin = "round";
-  ctx.lineWidth = 5; ctx.strokeStyle = "rgba(0,0,0,.55)"; ctx.strokeRect(X, Y, w, h);
-  ctx.lineWidth = 3; ctx.strokeStyle = css; ctx.strokeRect(X, Y, w, h);
+  ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.beginPath();
+  for (const c of E.sel.contours) {
+    ctx.moveTo(sx(c[0]), sy(c[1]));
+    for (let i = 2; i < c.length; i += 2) ctx.lineTo(sx(c[i]), sy(c[i + 1]));
+    ctx.closePath();
+  }
+  ctx.lineWidth = 5; ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.stroke();
+  ctx.lineWidth = 3; ctx.strokeStyle = css; ctx.stroke();
   const text = selText();
   ctx.font = "600 13px system-ui, sans-serif"; ctx.textBaseline = "middle";
   const pad = 4, th = 18, tw = ctx.measureText(text).width + pad * 2;
   const lx = Math.min(Math.max(0, X - 1.5), Math.max(0, E.cw - tw));
   let ly = Y - th - 1.5;
-  if (ly < 0) ly = Y + 1.5;                                 // no room above: label inside the box
+  if (ly < 0) ly = Y + 1.5;                                 // no room above: label inside the contour extent
   ly = Math.min(ly, Math.max(0, E.ch - th));
   ctx.fillStyle = css; ctx.fillRect(lx, ly, tw, th);
   const lum = (0.299 * col[0] + 0.587 * col[1] + 0.114 * col[2]) / 255;
