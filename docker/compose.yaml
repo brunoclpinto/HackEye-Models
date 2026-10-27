@@ -48,6 +48,9 @@ services:
       # HACKEYE_DATASETS_DIR / HACKEYE_RUNS_DIR.
       - ${HACKEYE_DATASETS_DIR:-../../../media/hackeye-models/datasets}:/datasets
       - ${HACKEYE_RUNS_DIR:-../../../media/hackeye-models/runs}:/runs
+      # The HackEye app's video library (GoPro clips), read-only. It is the
+      # source of the HackEye frames dataset (datasets/hackeye/extract_frames.py).
+      - ${HACKEYE_MEDIA_DIR:-../../../media/hackeye}:/media-src:ro
       # Downloaded base checkpoints (official Ultralytics yolo26* assets) live
       # in the shared ~/models/ultralytics dir alongside every other base model
       # on this host; only our own HackEye fine-tunes stay in this repo's models/.

@@ -64,6 +64,19 @@ research license at <https://www.mapillary.com/dataset/vistas>. See
 **PLAN.md** for the full design and **PROGRESS.md** for dataset paths,
 conversion status, and verification results.
 
+### HackEye frames (pseudo-labelled, for curation)
+
+The whole HackEye video library comes to 200,023 frames:
+
+- **Frames:** 1280×720 JPG at 20 fps.
+- **Masks:** 124-class pseudo-labels from the X dataset-creation model.
+- **Split:** by clip, and the Lab's test clips are kept in `val`.
+
+The dataset is too big for git. It lives at `~/media/hackeye-models/datasets/HackEye/`, which is
+`/datasets/HackEye/HackEye.yaml` in the container. It is copied to Google Drive only after
+curation. See **[datasets/hackeye/README.md](datasets/hackeye/README.md)** for the location,
+layout and rebuild commands.
+
 ### Previously explored
 
 - **Cityscapes** — the original plan was to use Cityscapes for its polish

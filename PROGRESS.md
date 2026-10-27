@@ -22,7 +22,8 @@ intent differs.)
 The 544 fine-tune (`Yolo26m-sem-HackEye20261012-544.pt`) and the 124-class
 s@640 `Yolo26s-sem-HackEyeV1.pt` were removed on 2026-10-18: the user judged
 the 544 model too flimsy in the Lab, and V1 was superseded. Both are still in
-git history. Next: use the X model to curate frames from the HackEye media library, then
+git history. Next: curate the pseudo-labelled HackEye frames dataset (see "HackEye frames dataset" below and
+`datasets/hackeye/README.md`), then
 retrain the app model on Vistas plus those frames (720p/l is the leading candidate, ~140 ms on A14).
 
 **Run outputs torn down again 2026-10-26** after the X-1280 release: the whole `vistas124-x-1280` run dir
@@ -61,6 +62,44 @@ training; then 300-500 labeled production frames for a fine-tune, oversampled
 5-10x. Decide whether pedestrian-area can merge into sidewalk (it's the one
 class the 544 fine-tune lost). Only real portrait footage can test the extra
 near-ground field of view; the sky-padded simulation can't.
+
+## HackEye frames dataset (2026-10-26): pseudo-labelled media library
+
+**Status (2026-10-27): labelled, verified, curation dry run done.** Next is the user's choice of
+curation config (see `datasets/hackeye/CURATION.md` and `curation/report.md` in the dataset root).
+The plan and the scale study are in `datasets/hackeye/PLAN.md`;
+location, layout and use are in `datasets/hackeye/README.md`.
+
+- **What it is:** all 19 HackEye clips (`~/media/hackeye`) as 1280×720 q100 JPG frames at 20 fps,
+  200,023 in total. Each frame has a 124-class mask from the X model. The dataset is at
+  `~/media/hackeye-models/datasets/HackEye` (`/datasets/HackEye/HackEye.yaml`). There is **no Drive copy
+  yet**: the user curates it first, then the tar goes to `bpbroasGDrive:works/HackEye/datasets/`.
+- **Split:** by clip. `val` = Chest-center-0002 and 0004, the Lab's test footage, 30,327 frames;
+  `train` = the other 17 clips, 169,696 frames.
+- **Extraction:** `extract_frames.py`, 6 clips in parallel, took about 20 min. All 200,023 expected
+  frames were written, none were missing, and every sampled frame was 1280×720.
+- **Scale:** the labels are the mean softmax of two inference scales, short sides 736 and 1280.
+  On 500 Vistas val images degraded to 720p detail this scored mIoU 0.422, vs 0.402 at 736 alone
+  and 0.424 at 1280 alone. It also scored best on the navigable surfaces and on pixel accuracy.
+  Table in PLAN.md.
+- **Labelling:** `pseudo_label.py` ran at batch 1 and about 5.1 frames/s, so about 11 h. Batch 1 is
+  faster than batch 4 or 8 here, because the full-resolution softmax per image dominates. Peak VRAM
+  is about 2.2 GiB. A Docker restart (NVIDIA driver 610 to 615 upgrade) stopped it at 116,760 frames on
+  2026-10-26; it resumed after the reboot (the script skips finished frames) and finished on 2026-10-27
+  at 03:30 UTC. Finalize passed.
+- **Verify (2026-10-27):** 169,696 train and 30,327 val masks, one per frame. 600 sampled masks are `P` mode
+  and every sampled frame is 1280×720. `vistas_verify.py yaml-check` passes (nc=124).
+- **Teacher errors seen:** "nature snow" is breaking surf, sea foam and sun glare (21% of Chest-0006
+  frames, 17.5% of Head-0004). "Water" (79% of frames) is mostly the real sea on the seafront clips.
+- **Curation dry run:** `datasets/hackeye/curate.py` trims near-duplicates (a fixed fps subsample, then
+  merging by 32×18 layout grid, with rare classes protected). It writes a report and keep-lists only. Results
+  are in CURATION.md.
+- **Gotchas found:**
+  - A detached `docker compose run` needs `-T`, or its log output is held back. The extraction
+    log stopped updating while the job kept running.
+  - Ultralytics' predict stream holds a lock until the generator is exhausted. A half-consumed
+    `stream=True` generator makes the next `predict()` call hang forever, which left one stuck
+    smoke-test container. `pseudo_label.py` therefore drains it with `list(gen)`.
 
 ## X-1280 run (2026-10-18 to 10-26): dataset-creation model
 
