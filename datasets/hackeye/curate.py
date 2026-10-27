@@ -4,8 +4,8 @@ never touches frames, masks, meta or csvs of the dataset (nothing is deleted or 
 
     <root>/curation/grid_cache_<split>.npz        cached 18x32 layout grids (48-class, uint8)
     <root>/curation/<config>/keep_<split>.csv     stem,group,reason
-    <root>/curation/<config>/groups.csv           one row per layout group
-    <root>/curation/<config>/hard_review.csv      least confident dropped frame per group (if unsure)
+    <root>/curation/<config>/groups_<split>.csv           one row per layout group
+    <root>/curation/<config>/hard_review_<split>.csv      least confident dropped frame per group (if unsure)
     <root>/curation/report.json, report.md        the sweep
 
 Method (per config = base_fps x sim):
@@ -18,8 +18,8 @@ Method (per config = base_fps x sim):
   D. the least confident dropped member of each group goes to hard_review.csv if lowconf_frac >= hard_lowconf.
 
 Only frames that have a mask AND a labels row AND a classpix row are considered, so the script works on a
-partially labelled dataset; re-runs only compute grids for masks not yet in the cache. Val is never trimmed
-(counts only).
+partially labelled dataset; re-runs only compute grids for masks not yet in the cache. `--split val` curates val and writes
+report_val.*; train writes report.*.
 
 Run (host has no numpy, use the training image; leave the GPU alone):
 
@@ -250,13 +250,13 @@ def write_config(outdir: Path, split: str, f: dict, res: dict) -> None:
         w.writerow(["stem", "group", "reason"])
         for i, g, why in sorted(res["keep"], key=lambda x: st[x[0]]):
             w.writerow([st[i], g, why])
-    with open(outdir / "groups.csv", "w", newline="") as fh:
+    with open(outdir / f"groups_{split}.csv", "w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["group", "clip", "anchor", "kept", "n_members", "t_first", "t_last", "min_agree_cells", "members"])
         for g, clip, anchor, kept, mem, mn in res["groups"]:
             w.writerow([g, clip, st[anchor], st[kept], len(mem), f"{t[mem[0]]:.2f}", f"{t[mem[-1]]:.2f}", mn,
                         ";".join(st[m] for m in mem)])
-    with open(outdir / "hard_review.csv", "w", newline="") as fh:
+    with open(outdir / f"hard_review_{split}.csv", "w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["stem", "group", "conf_mean", "lowconf_frac"])
         for i, g in sorted(res["hard"], key=lambda x: st[x[0]]):
@@ -279,7 +279,7 @@ def build_report(meta: dict, cfgs: dict, f: dict, names48: dict[int, str], pres4
          f"Nothing in the dataset was changed. Params: max_gap {meta['max_gap']} s, protect_px {meta['protect_px']}, "
          f"rare_frac {meta['rare_frac']}, hard_lowconf {meta['hard_lowconf']}. "
          f"Protected classes: {len(meta['protected'])} ({len(meta['rare_classes'])} rare).", "",
-         f"Val is not trimmed: {val['n_masks']:,} masks of {val['n_total']:,} frames.", "",
+         (f"Val: {val['n_masks']:,} masks of {val['n_total']:,} frames." if meta['split'] != "val" else ""), "",
          "## Sweep", "",
          "| config | stage A | groups | kept | % kept | protected extras | hard-review | mean conf kept | mean conf all |",
          "|---|---|---|---|---|---|---|---|---|"]
@@ -313,7 +313,7 @@ def build_report(meta: dict, cfgs: dict, f: dict, names48: dict[int, str], pres4
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--root", type=Path, default=Path("/datasets/HackEye26.1-124"))
-    ap.add_argument("--split", default="train", choices=["train", "val"], help="val: counts only, nothing trimmed")
+    ap.add_argument("--split", default="train", choices=["train", "val"], help="split to curate; val writes report_val.*")
     ap.add_argument("--base-fps", default="2,4")
     ap.add_argument("--sim", default="0.75,0.85,0.90,0.95")
     ap.add_argument("--max-gap", type=float, default=10.0, help="seconds from the group's anchor")
@@ -326,12 +326,6 @@ def main() -> None:
     t0 = time.time()
     root = args.root
     out = root / "curation"
-
-    if args.split == "val":
-        v = load_frames(root, "val")
-        print(f"[curate] val (not trimmed): {len(v['stems'])} usable of {v['n_total']} frames "
-              f"({v['n_masks']} masks, {v['n_labels']} labels rows, {v['n_classpix']} classpix rows)")
-        return
 
     tax = load_taxonomy(args.vistas_config)
     merged = build_merge_lut(tax, yaml.safe_load(MERGE_YAML.read_text()))
@@ -396,9 +390,10 @@ def main() -> None:
                   f"hard {len(res['hard'])}  [{time.time() - tc:.1f}s]", flush=True)
 
     meta["elapsed_s"] = round(time.time() - t0, 1)
-    (out / "report.json").write_text(json.dumps({"meta": meta, "configs": cfgs}, indent=1))
-    (out / "report.md").write_text(build_report(meta, cfgs, f, {c: names48[c] for c in ids48}, pres48, px48, val))
-    print(f"[curate] done in {time.time() - t0:.1f}s -> {out}/report.md", flush=True)
+    rname = "report" if args.split == "train" else f"report_{args.split}"
+    (out / f"{rname}.json").write_text(json.dumps({"meta": meta, "configs": cfgs}, indent=1))
+    (out / f"{rname}.md").write_text(build_report(meta, cfgs, f, {c: names48[c] for c in ids48}, pres48, px48, val))
+    print(f"[curate] done in {time.time() - t0:.1f}s -> {out}/{rname}.md", flush=True)
 
 
 if __name__ == "__main__":

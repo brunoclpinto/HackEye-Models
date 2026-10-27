@@ -92,13 +92,13 @@ def _git_commit(repo: Path) -> str | None:
         return None
 
 
-def _config_params(root: Path, config: str) -> dict:
+def _config_params(root: Path, config: str, split: str = "train") -> dict:
     """Global sweep params + the config's own numbers from curation/report.json (if present)."""
     p: dict = {}
     m = re.fullmatch(r"fps(\d+(?:\.\d+)?)_sim(\d+(?:\.\d+)?)", config)
     if m:
         p["base_fps"], p["sim"] = float(m.group(1)), float(m.group(2))
-    rp = root / "curation" / "report.json"
+    rp = root / "curation" / ("report.json" if split == "train" else f"report_{split}.json")
     if rp.exists():
         rep = json.loads(rp.read_text())
         for k in ("split", "max_gap", "protect_px", "rare_frac", "hard_lowconf"):
@@ -165,9 +165,13 @@ def main() -> None:
     drop_files = sorted(ondisk - keep)
     frames_before = len(jpg)
     prev = meta / "curation.json"
+    records: dict = {}
     if prev.exists():
         try:
-            old = json.loads(prev.read_text())
+            records = json.loads(prev.read_text())
+            if "split" in records:  # old single-record format
+                records = {records["split"]: records}
+            old = records.get(split, {})
             if old.get("config") == args.config and old.get("split") == split and old.get("keep_sha256") == sha:
                 frames_before = old["frames_before"]
         except Exception:  # noqa: BLE001 -- unreadable old file: use the number found now
@@ -225,13 +229,14 @@ def main() -> None:
 
     # ---- record
     rec = {
-        "config": args.config, "params": _config_params(root, args.config), "split": split,
+        "config": args.config, "params": _config_params(root, args.config, split), "split": split,
         "frames_before": frames_before, "kept": len(keep), "deleted": frames_before - len(keep),
         "keep_list": str(keep_path), "keep_sha256": sha,
         "applied": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "git_commit": _git_commit(Path("/app")) or _git_commit(Path(__file__).resolve().parents[2]),
     }
-    _atomic_text(meta / "curation.json", json.dumps(rec, indent=1))
+    records[split] = rec
+    _atomic_text(meta / "curation.json", json.dumps(records, indent=1))
     print(f"{tag} wrote {meta / 'curation.json'}; next: pseudo_label.py --finalize-only", flush=True)
 
 

@@ -66,7 +66,8 @@ conversion status, and verification results.
 
 ### HackEye frames: HackEye26.1-124 (pseudo-labelled, curated)
 
-The HackEye video library: 45,157 frames (train 14,830, curated from 169,696; val 30,327), about 23 GB.
+The HackEye video library: 17,347 frames (train 14,830 from 169,696; val 2,517 from 30,327), both curated
+with fps2_sim0.90, about 9 GB.
 
 - **Frames:** 1280×720 JPG at 20 fps.
 - **Masks:** 124-class pseudo-labels from the X dataset-creation model.

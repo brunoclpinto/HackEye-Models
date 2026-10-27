@@ -2,9 +2,14 @@
 
 Status: **applied (2026-10-27).** The user picked `fps2_sim0.90`. `apply_curation.py` kept 14,830 of 169,696
 train frames and deleted the other 154,866 (jpg + mask), then the dataset was re-finalized as `HackEye26.1-124`.
-Val is untouched. The record is `meta/curation.json`, also in `dataset_manifest.json` under `curation`. The other
+Val was then trimmed the same way at the user's request (30,327 was too many): `curate.py --split val`
+(fps2_sim0.90 only) kept 2,517 of 30,327 val frames (8.3%, 71 rare-class extras) and deleted 27,810. Kept val
+frames keep their `t_sec`, so they still map onto Lab timestamps every 0.5 s or more. The dataset is now 17,347
+frames, about 9 GB. The record is `meta/curation.json` (one entry per split), also in `dataset_manifest.json` under `curation`. The other
 configs' lists and the grid cache were deleted; `curation/report.*` and `curation/fps2_sim0.90/` remain. The
 hard-review frames of that config were dropped frames, so they are deleted too (re-extract by stem if needed).
+The val run overwrote train's `groups.csv`/`hard_review.csv` (the names had no split then); the files are now
+per split and only the val ones remain. `keep_train.csv` is intact.
 
 ## Results (full train set, 169,696 frames)
 
@@ -62,7 +67,8 @@ hundreds of copies of one scene. These overweight that scene in training and was
 5. **Hard frames, for review.** Confidence-based picking favours easy frames. So per group, the least confident
    dropped frame goes to `hard_review.csv` when its `lowconf_frac` is at least 0.15. These frames are not in the
    kept set; they are candidates for human review.
-6. **Val is not trimmed.** Its frames line up with the Lab test timestamps. The report only gives its counts.
+6. **Val.** At first it wasn't trimmed, to keep Lab alignment. The user later asked for the same trim
+   (fps2_sim0.90, 2,517 frames), and the kept frames keep their timestamps.
 
 ## Outputs
 

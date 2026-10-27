@@ -65,8 +65,8 @@ near-ground field of view; the sky-padded simulation can't.
 
 ## HackEye frames dataset (2026-10-26): pseudo-labelled media library
 
-**Status (2026-10-27): done, curated and renamed `HackEye26.1-124`.** 45,157 frames: train 14,830 (config
-`fps2_sim0.90`, from 169,696), val 30,327; about 23 GB. See `datasets/hackeye/CURATION.md`. Next: snow-to-water
+**Status (2026-10-27): done, curated and renamed `HackEye26.1-124`.** 17,347 frames, both splits curated
+with `fps2_sim0.90`: train 14,830 (from 169,696), val 2,517 (from 30,327); about 9 GB. See `datasets/hackeye/CURATION.md`. Next: snow-to-water
 remap (suggested, not applied), Drive copy on the user's go, then retrain the app model on Vistas plus this set.
 The plan and the scale study are in `datasets/hackeye/PLAN.md`;
 location, layout and use are in `datasets/hackeye/README.md`.

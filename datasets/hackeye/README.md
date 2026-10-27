@@ -2,7 +2,7 @@
 
 The HackEye video library as a YOLO semantic-segmentation dataset, named `HackEye26.1-124`
 (HackEye app version 26.1, 124 Vistas classes). Train is curated: near-duplicate frames were removed
-(config `fps2_sim0.90`, see [CURATION.md](CURATION.md)). Val is complete.
+(config `fps2_sim0.90`, see [CURATION.md](CURATION.md)). Val is curated the same way.
 
 - **Frames:** 1280×720 JPG at 20 fps, maximum quality.
 - **Masks:** 124-class Vistas pseudo-labels from the dataset-creation model
@@ -60,8 +60,8 @@ HackEye26.1-124/
 | Split | Clips | Frames |
 |---|---|---|
 | train | 17 | 14,830 (curated from 169,696) |
-| val | 2 | 30,327 (complete) |
-| **total** | 19 | **45,157**, about 23 GB (200,023 frames, 2.8 h of video, before curation) |
+| val | 2 | 2,517 (curated from 30,327) |
+| **total** | 19 | **17,347**, about 9 GB (200,023 frames, 2.8 h of video, before curation) |
 
 ## Rebuilding it
 
@@ -79,6 +79,8 @@ docker compose run --rm -T --entrypoint python train datasets/hackeye/pseudo_lab
 # 3. curation: dry-run sweep (CPU, ~1 min), then keep only the picked config's train frames and re-finalize
 docker compose run --rm -T --entrypoint python -e CUDA_VISIBLE_DEVICES= train datasets/hackeye/curate.py --split train
 docker compose run --rm -T --entrypoint python -e CUDA_VISIBLE_DEVICES= train datasets/hackeye/apply_curation.py --config fps2_sim0.90 --apply
+docker compose run --rm -T --entrypoint python -e CUDA_VISIBLE_DEVICES= train datasets/hackeye/curate.py --split val --base-fps 2 --sim 0.90
+docker compose run --rm -T --entrypoint python -e CUDA_VISIBLE_DEVICES= train datasets/hackeye/apply_curation.py --config fps2_sim0.90 --split val --apply
 docker compose run --rm -T --entrypoint python train datasets/hackeye/pseudo_label.py --finalize-only
 ```
 
