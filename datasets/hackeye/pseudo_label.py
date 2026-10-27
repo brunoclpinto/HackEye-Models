@@ -1,12 +1,12 @@
 """Pseudo-labels the extracted HackEye frames with the dataset-creation model
 (Yolo26x-sem-Vistas124-HackEye-1280) and finalizes the dataset: masks, per-frame
-confidence stats, frames.csv, HackEye.yaml and dataset_manifest.json.
+confidence stats, frames.csv, <dst.name>.yaml and dataset_manifest.json.
 
     <dst>/masks/{train,val}/<stem>.png   8-bit palette PNG, class ids 0..123, Vistas colours
     <dst>/meta/labels_<split>.csv        stem,conf_mean,conf_p10,lowconf_frac
     <dst>/meta/classpix_<split>.csv      stem,counts   (sparse "id:pixels;id:pixels" per frame)
     <dst>/meta/class_pixels.json         running per-class pixel totals
-    <dst>/frames.csv, HackEye.yaml, dataset_manifest.json   (finalize)
+    <dst>/frames.csv, <dst.name>.yaml, dataset_manifest.json   (finalize)
 
 Why it is built the way it is:
 
@@ -320,9 +320,9 @@ def finalize(args, tax, names: dict[int, str]) -> None:
 
     # 3. yaml
     data = tax.to_data_yaml_dict(root=str(dst))
-    data["path"] = "/datasets/HackEye"
+    data["path"] = f"/datasets/{dst.name}"
     data["train"], data["val"] = "images/train", "images/val"
-    _atomic_text(dst / "HackEye.yaml", yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
+    _atomic_text(dst / f"{dst.name}.yaml", yaml.safe_dump(data, sort_keys=False, allow_unicode=True))
 
     # 4. manifest
     totals, _ = _load_totals(meta, nc)
@@ -357,15 +357,18 @@ def finalize(args, tax, names: dict[int, str]) -> None:
         "class_pixels": {names[i]: int(totals[i]) for i in range(nc)},
         "class_pixels_total": int(totals.sum()),
     }
+    cur = meta / "curation.json"
+    if cur.exists():
+        manifest["curation"] = json.loads(cur.read_text())
     _atomic_text(dst / "dataset_manifest.json", json.dumps(manifest, indent=1))
-    print(f"[finalize] ok: {len(frame_rows)} frames, frames.csv + HackEye.yaml + dataset_manifest.json in {dst}", flush=True)
+    print(f"[finalize] ok: {len(frame_rows)} frames, frames.csv + {dst.name}.yaml + dataset_manifest.json in {dst}", flush=True)
 
 
 # -------------------------------------------------------------------- main
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--dst", type=Path, default=Path("/datasets/HackEye"))
+    ap.add_argument("--dst", type=Path, default=Path("/datasets/HackEye26.1-124"))
     ap.add_argument("--weights", default="models/Yolo26x-sem-Vistas124-HackEye-1280.pt")
     ap.add_argument("--imgsz", default="736,1280", help="comma list of short sides the net sees; softmax is averaged over them (each dim rounded up to /32)")
     ap.add_argument("--batch", type=int, default=1, help="frames per predict call; 1 was fastest and lightest at 736,1280 (see docstring)")

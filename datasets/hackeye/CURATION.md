@@ -1,6 +1,10 @@
 # HackEye frames dataset: curation (near-duplicate trimming)
 
-Status: **dry run done (2026-10-27); waiting for the user to pick a config.** Nothing is deleted or moved until then.
+Status: **applied (2026-10-27).** The user picked `fps2_sim0.90`. `apply_curation.py` kept 14,830 of 169,696
+train frames and deleted the other 154,866 (jpg + mask), then the dataset was re-finalized as `HackEye26.1-124`.
+Val is untouched. The record is `meta/curation.json`, also in `dataset_manifest.json` under `curation`. The other
+configs' lists and the grid cache were deleted; `curation/report.*` and `curation/fps2_sim0.90/` remain. The
+hard-review frames of that config were dropped frames, so they are deleted too (re-extract by stem if needed).
 
 ## Results (full train set, 169,696 frames)
 
@@ -16,7 +20,7 @@ Status: **dry run done (2026-10-27); waiting for the user to pick a config.** No
 | fps4_sim0.95 | 32,073 | 18.9% | 223 | 34 | 0.867 |
 
 The mean conf over all frames is 0.853. The full report, with per-clip and per-class tables, is
-`~/media/hackeye-models/datasets/HackEye/curation/report.md`.
+`~/media/hackeye-models/datasets/HackEye26.1-124/curation/report.md`.
 
 Findings:
 - "Within 25%" (sim 0.75) is too loose. Large classes (sky, road, building) dominate the grid, so different
@@ -24,7 +28,7 @@ Findings:
 - Trimming keeps the class mix almost unchanged. It removes redundancy but does not fix class imbalance.
 - Picking by confidence raises the mean conf only a little (0.853 to 0.864–0.876).
 
-Rerun: `cd docker && docker compose run --rm -T --entrypoint python -e CUDA_VISIBLE_DEVICES= train datasets/hackeye/curate.py --root /datasets/HackEye --split train`
+Rerun: `cd docker && docker compose run --rm -T --entrypoint python -e CUDA_VISIBLE_DEVICES= train datasets/hackeye/curate.py --root /datasets/HackEye26.1-124 --split train`
 (about 1 min the first time, a few seconds with the grid cache).
 
 ## Why
@@ -62,7 +66,7 @@ hundreds of copies of one scene. These overweight that scene in training and was
 
 ## Outputs
 
-These go in `~/media/hackeye-models/datasets/HackEye/curation/`, and nothing in the dataset is changed:
+These go in `~/media/hackeye-models/datasets/HackEye26.1-124/curation/`, and nothing in the dataset is changed:
 - `grid_cache_<split>.npz`: the cached grids;
 - `<config>/keep_train.csv` (stem, group, reason), `<config>/groups.csv`, `<config>/hard_review.csv`;
 - `report.json` and `report.md`: the sweep table with, per config:

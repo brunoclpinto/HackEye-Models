@@ -24,7 +24,7 @@ partially labelled dataset; re-runs only compute grids for masks not yet in the 
 Run (host has no numpy, use the training image; leave the GPU alone):
 
     cd docker && docker compose run --rm -T --entrypoint python -e CUDA_VISIBLE_DEVICES= train \\
-        datasets/hackeye/curate.py --root /datasets/HackEye --split train
+        datasets/hackeye/curate.py --root /datasets/HackEye26.1-124 --split train
 """
 
 from __future__ import annotations
@@ -312,7 +312,7 @@ def build_report(meta: dict, cfgs: dict, f: dict, names48: dict[int, str], pres4
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--root", type=Path, default=Path("/datasets/HackEye"))
+    ap.add_argument("--root", type=Path, default=Path("/datasets/HackEye26.1-124"))
     ap.add_argument("--split", default="train", choices=["train", "val"], help="val: counts only, nothing trimmed")
     ap.add_argument("--base-fps", default="2,4")
     ap.add_argument("--sim", default="0.75,0.85,0.90,0.95")

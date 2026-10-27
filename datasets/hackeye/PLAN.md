@@ -19,8 +19,8 @@ retrained app model will learn from Vistas plus curated HackEye frames.
 
 | Decision | Choice | Why |
 |---|---|---|
-| Location | `~/media/hackeye-models/datasets/HackEye/` (`/datasets/HackEye` in the container) | It's too big for git. It sits next to `vistas-raw`, following the central media rule; the compose file already mounts it. |
-| Layout | `images/{train,val}/<stem>.jpg` + `masks/{train,val}/<stem>.png` + `HackEye.yaml` | This is the same SemanticDataset layout as the Vistas conversion (`masks_dir: masks`), so `train_semantic.py --data /datasets/HackEye/HackEye.yaml` works unchanged. |
+| Location | `~/media/hackeye-models/datasets/HackEye26.1-124/` (`/datasets/HackEye26.1-124` in the container) | It's too big for git. It sits next to `vistas-raw`, following the central media rule; the compose file already mounts it. |
+| Layout | `images/{train,val}/<stem>.jpg` + `masks/{train,val}/<stem>.png` + `HackEye26.1-124.yaml` | This is the same SemanticDataset layout as the Vistas conversion (`masks_dir: masks`), so `train_semantic.py --data /datasets/HackEye26.1-124/HackEye26.1-124.yaml` works unchanged. |
 | Stem | `<clip>_<k:06d>`, e.g. `Chest-center-0004_000123`; `k` is the 20 fps index, so `t = k / 20` s | It sorts in time, and any frame maps straight back to a timestamp in its clip. |
 | Frame pick | For `t = k/20`, take source frame `round(t × fps)` until the clip ends | 59.94 fps sources then keep every 3rd frame. 23.976 fps sources drop about 1 frame in 6, unevenly. |
 | Resize | Area resize (`cv2.INTER_AREA`) to exactly 1280×720 | All clips are 16:9 (2704×1520 is 1.779, so a 0.05% stretch). |
@@ -55,7 +55,7 @@ retrained app model will learn from Vistas plus curated HackEye frames.
 2. **Pseudo-label** (`datasets/hackeye/pseudo_label.py`, GPU, launched detached). The script is
    resumable and skips existing masks. It writes the masks, the confidence columns and per-class
    pixel totals.
-3. **Finalize.** Write `HackEye.yaml` (124 Vistas names + `label_mapping` voids, like
+3. **Finalize.** Write `HackEye26.1-124.yaml` (124 Vistas names + `label_mapping` voids, like
    `vistas-v2.0.yaml`) and `dataset_manifest.json`. The manifest records the model file and sha256,
    the repo commit, all parameters, a per-clip table, counts and the class pixel histogram.
 4. **Verify.**
@@ -63,7 +63,7 @@ retrained app model will learn from Vistas plus curated HackEye frames.
    - Shapes: every frame is 1280×720.
    - Masks open as `P` mode.
    - Spot-check colour overlays across clips and times by eye.
-   - `vistas_verify.py yaml-check` passes on `HackEye.yaml`.
+   - `vistas_verify.py yaml-check` passes on `HackEye26.1-124.yaml`.
 5. **Copy to Drive: deferred (user, 2026-10-26).** The dataset is curated first, and the copy
    happens only on the user's go. When it does: build an uncompressed tar of the curated dataset
    root (JPGs don't compress), then `rclone copy` it to `bpbroasGDrive:works/HackEye/datasets/`

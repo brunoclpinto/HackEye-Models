@@ -65,15 +65,16 @@ near-ground field of view; the sky-padded simulation can't.
 
 ## HackEye frames dataset (2026-10-26): pseudo-labelled media library
 
-**Status (2026-10-27): labelled, verified, curation dry run done.** Next is the user's choice of
-curation config (see `datasets/hackeye/CURATION.md` and `curation/report.md` in the dataset root).
+**Status (2026-10-27): done, curated and renamed `HackEye26.1-124`.** 45,157 frames: train 14,830 (config
+`fps2_sim0.90`, from 169,696), val 30,327; about 23 GB. See `datasets/hackeye/CURATION.md`. Next: snow-to-water
+remap (suggested, not applied), Drive copy on the user's go, then retrain the app model on Vistas plus this set.
 The plan and the scale study are in `datasets/hackeye/PLAN.md`;
 location, layout and use are in `datasets/hackeye/README.md`.
 
 - **What it is:** all 19 HackEye clips (`~/media/hackeye`) as 1280×720 q100 JPG frames at 20 fps,
   200,023 in total. Each frame has a 124-class mask from the X model. The dataset is at
-  `~/media/hackeye-models/datasets/HackEye` (`/datasets/HackEye/HackEye.yaml`). There is **no Drive copy
-  yet**: the user curates it first, then the tar goes to `bpbroasGDrive:works/HackEye/datasets/`.
+  `~/media/hackeye-models/datasets/HackEye26.1-124` (`/datasets/HackEye26.1-124/HackEye26.1-124.yaml`). There is **no Drive copy
+  yet**: on the user's go, the tar goes to `bpbroasGDrive:works/HackEye/datasets/`.
 - **Split:** by clip. `val` = Chest-center-0002 and 0004, the Lab's test footage, 30,327 frames;
   `train` = the other 17 clips, 169,696 frames.
 - **Extraction:** `extract_frames.py`, 6 clips in parallel, took about 20 min. All 200,023 expected

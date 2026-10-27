@@ -158,7 +158,7 @@ def extract_clip(src: str, dst: str, split: str, fps_out: float, width: int, hei
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--src", type=Path, default=Path("/media-src"), help="directory containing the *.MP4 clips")
-    ap.add_argument("--dst", type=Path, default=Path("/datasets/HackEye"), help="dataset root")
+    ap.add_argument("--dst", type=Path, default=Path("/datasets/HackEye26.1-124"), help="dataset root")
     ap.add_argument("--fps", type=float, default=20, help="output frame rate")
     ap.add_argument("--width", type=int, default=1280)
     ap.add_argument("--height", type=int, default=720)
