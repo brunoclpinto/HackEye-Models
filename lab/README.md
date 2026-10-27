@@ -28,12 +28,12 @@ docker compose stop sam           # frees the GPU; the lab keeps working, with t
 
 ## Workflow
 
-**Layout (one page):** Browse sits permanently at the top: filters, plus a carousel of the filtered frames. Below it
+**Layout (one page):** Browse sits permanently at the top: filters, plus Prev/Next navigation that wraps around. Below it
 is the image, then the work panel of the selected menu tab, **Edit | Taxonomy | Rules** (default Edit). Every group
 collapses from its header, and the image height can be dragged.
 
-1. **Browse (top).** Filter by split, clip, status, confidence, class present or edited. Step with `←`/`→` (or `N`/`P`)
-   and jump with `Home`/`End`. Tag with `Shift+1` ok, `Shift+2` fix, `Shift+3` drop, `Shift+4` todo, or the buttons.
+1. **Browse (top).** Filter by split, clip, status, confidence, class present or edited. Step with `←`/`→` (or `N`/`P`);
+   Next on the last frame goes back to the first, and Prev on the first goes to the last. Tag with `Shift+1` ok, `Shift+2` fix, `Shift+3` drop, `Shift+4` todo, or the buttons.
    `drop` is only a tag; deleting frames is a separate, explicit step.
 2. **Edit.** Corrections are saved **into the master masks**: P-mode PNGs written atomically. **Revert** restores the
    original pseudo-label.
@@ -61,7 +61,7 @@ collapses from its header, and the image height can be dragged.
 | `1`–`9`, `/`, Alt+click, Shift+Alt+click | recent classes, search classes, eyedropper, set the protect class |
 | SAM: click, right-click, drag, `Tab`, `Enter`, `Esc` | positive point, negative point, box, next candidate, apply, clear |
 | `Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`, `Ctrl/Cmd+S` | undo, redo, save (moving to another frame autosaves) |
-| `←` `→` / `N` `P`, `Home` `End`, `Shift+1`–`4` | next or previous frame in the carousel; first or last frame; tag ok, fix, drop, todo |
+| `←` `→` / `N` `P`, `Shift+1`–`4` | previous or next frame in the filter (wraps around); tag ok, fix, drop, todo |
 
 **Protect source class** applies to every tool: only pixels of that class change. It's the main aid for boundaries, e.g.
 painting curb only over sidewalk.

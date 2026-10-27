@@ -30,8 +30,9 @@
         <button data-st="drop" data-testid="tag-drop" title="Tag drop (Shift+3)">drop</button><button data-st="todo" data-testid="tag-todo" title="Tag todo (Shift+4)">todo</button>
       </div>
       <div class="seg">
-        <button id="bFirst" title="First frame (Home)">|&larr;</button><button id="bPrev" title="Previous (Left / P)">&larr;</button>
-        <button id="bNext" title="Next (Right / N)">&rarr;</button><button id="bLast" title="Last frame (End)">&rarr;|</button>
+        <button id="bPrev" data-testid="nav-prev" title="Previous frame (Left / P); wraps from the first to the last">&larr; Prev</button>
+        <span id="bPos" class="pos mono" data-testid="nav-pos" data-index="0" data-total="0"></span>
+        <button id="bNext" data-testid="nav-next" title="Next frame (Right / N); wraps from the last to the first">Next &rarr;</button>
       </div>
     </header>
     <div class="gb">
@@ -47,7 +48,6 @@
         <label>Sort <select name="sort"><option value="time">time</option><option value="conf">conf asc</option><option value="-conf">conf desc</option><option value="low">lowconf</option><option value="-edited">recently edited</option></select></label>
         <button type="button" id="bReset">Reset</button>
       </form>
-      <div id="carousel" data-testid="carousel"><div id="cSpacer"></div></div>
     </div>
   </section>
 

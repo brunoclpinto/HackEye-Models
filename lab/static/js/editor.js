@@ -41,6 +41,7 @@ window.__lab = {
   getPixel: (x, y) => (E.grid ? E.grid[y * E.W + x] : undefined),
 };
 export const currentStem = () => E.stem;
+export const currentQS = () => E.qs;
 export const isDirty = () => history.dirty;
 
 // ---------------------------------------------------------------- colour LUT / mask layer
@@ -364,7 +365,7 @@ export async function show(stem, qs = "", { discard = false } = {}) {
     preload(meta.next);
     if (meta.next) api(`/api/frames/${encodeURIComponent(meta.next)}${qs ? "?" + qs : ""}`, { quiet: true }).then((m) => preload(m.next)).catch(() => {});
     refreshMaps();
-    document.dispatchEvent(new CustomEvent("frame-opened", { detail: { stem, index: meta.index } }));
+    document.dispatchEvent(new CustomEvent("frame-opened", { detail: { stem, index: meta.index, total: meta.total } }));
   } catch (e) {
     toast(`Could not open ${stem}: ${e.message}`);
   } finally { if (seq === E.loadSeq) $("#eLoading").hidden = true; }
@@ -479,8 +480,8 @@ function bindToolbar() {
   $("#eSave").addEventListener("click", () => save());
   $("#eRevert").addEventListener("click", revert);
   $$("#eStatus button").forEach((b) => b.addEventListener("click", () => setStatus(b.dataset.st)));
-  $("#ePrev").addEventListener("click", () => go(E.meta?.prev));
-  $("#eNext").addEventListener("click", () => go(E.meta?.next));
+  $("#ePrev").addEventListener("click", () => step(-1));
+  $("#eNext").addEventListener("click", () => step(1));
   $("#eNote").addEventListener("change", (e) => { if (!E.meta) return; E.meta.note = e.target.value; api(`/api/frames/${encodeURIComponent(E.stem)}/state`, { method: "PUT", body: { note: E.meta.note } }).catch(() => {}); });
   initHandle();
   $("#pane-edit").addEventListener("click", (e) => { if (e.target.closest("button")) e.target.closest("button").blur(); });
@@ -493,7 +494,6 @@ function syncUI() {
   $("#eUndo").disabled = !history.canUndo; $("#eRedo").disabled = !history.canRedo;
   $("#eSave").disabled = !history.dirty;
   $$("#eStatus button").forEach((b) => b.classList.toggle("on", b.dataset.st === E.meta?.status));
-  $("#ePrev").disabled = !E.meta?.prev; $("#eNext").disabled = !E.meta?.next;
   const m = E.meta;
   const info = $("#eInfo");
   $("#eSamInfo").textContent = E.tool === "sam" ? sam.info : "";
@@ -545,8 +545,8 @@ export function onKey(e) {
     case "x": picker.swap(); return true;
     case "=": case "+": E.cw && zoomAt(E.cw / 2, E.ch / 2, E.z * 1.5); return true;
     case "-": E.cw && zoomAt(E.cw / 2, E.ch / 2, E.z / 1.5); return true;
-    case "n": case "arrowright": go(E.meta?.next); return true;
-    case "p": case "arrowleft": go(E.meta?.prev); return true;
+    case "n": case "arrowright": step(1); return true;
+    case "p": case "arrowleft": step(-1); return true;
     case "/": picker.focusSearch(); return true;
     case "tab": if (E.tool === "sam") { sam.cycle(e.shiftKey ? -1 : 1); return true; } return false;
     case "enter": if (E.tool === "polygon" && E.poly) { closePoly(); return true; } if (E.tool === "sam" && sam.has) { applySam(); return true; } return false;
@@ -554,7 +554,22 @@ export function onKey(e) {
   }
   return false;
 }
-export const step = (dir) => go(dir < 0 ? E.meta?.prev : E.meta?.next);
+/** Previous / next frame of the filter; wraps (next on the last -> first, prev on the first -> last). */
+export async function step(dir) {
+  if (!E.meta) return;
+  let t = dir < 0 ? E.meta.prev : E.meta.next;
+  if (!t) {
+    const total = E.meta.total;
+    if (!total) { toast("No frames in this filter", "ok", 1500); return; }
+    t = await edgeStem(dir < 0 ? total - 1 : 0);
+    if (!t || t === E.stem) return;                       // a single-frame filter stays on its frame
+  }
+  go(t);
+}
+async function edgeStem(offset) {
+  const q = new URLSearchParams(E.qs); q.set("offset", offset); q.set("limit", 1);
+  try { return (await api(`/api/frames?${q}`)).rows[0]?.stem ?? ""; } catch { return ""; }
+}
 /** The browse filter changed: refresh prev/next/index for the current frame without reloading it. */
 export async function setFilter(qs) {
   E.qs = qs;
@@ -563,9 +578,11 @@ export async function setFilter(qs) {
     const m = await api(`/api/frames/${encodeURIComponent(E.stem)}${qs ? "?" + qs : ""}`, { quiet: true });
     Object.assign(E.meta, { prev: m.prev, next: m.next, index: m.index, total: m.total });
     syncUI();
-    document.dispatchEvent(new CustomEvent("frame-opened", { detail: { stem: E.stem, index: m.index } }));
-  } catch { Object.assign(E.meta, { prev: null, next: null, index: -1 }); syncUI(); }
+    document.dispatchEvent(new CustomEvent("frame-opened", { detail: { stem: E.stem, index: m.index, total: m.total } }));
+    if (m.index == null || m.index < 0) await goFirst();
+  } catch { Object.assign(E.meta, { prev: null, next: null, index: -1 }); syncUI(); await goFirst(); }
 }
+async function goFirst() { const t = await edgeStem(0); if (t && t !== E.stem) go(t); }   // the current frame left the filter
 function initHandle() {
   const stage = $("#eStage"), h = $("#eHandle");
   let saved = 0;

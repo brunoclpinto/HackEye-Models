@@ -133,3 +133,13 @@ the stem, so every card read "Chest-center…". They now show `C-0001 · 000215`
 - At 900 px high, the Work panel starts below the fold, so picking a class chip means scrolling. Recents (`1`–`9`), a
   collapsed or shorter image group, or a later "sticky image" option reduce this.
 - `Cmd+digit` can't be used for tagging on the Mac, so tagging is on `Shift+1`–`4`.
+
+**Follow-up: navigation (same version, v26.1.1, at the user's request).** The user clarified: "navigation of images is next
+and previous, no carroussel thumbs. when i said carroussel i meant infinite navigation, so last next goes to first and
+first previous goes to last. don't bump version for this fix."
+- The thumbnail carousel, the first/last buttons and `Home`/`End` were removed.
+- The Browse group is now the filters plus one row: Prev, `i / N`, Next, and the tags.
+- Navigation wraps in the frontend: when `next`/`prev` is null, it fetches the first or last frame of the filter. The API
+  is unchanged.
+- Plan: [`plans/v26.1.1-followup-navigation.md`](plans/v26.1.1-followup-navigation.md).
+- The E2E tests check the wrap-around in both directions.

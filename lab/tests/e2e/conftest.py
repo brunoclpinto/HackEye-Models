@@ -18,9 +18,10 @@ Layout (v26.1.1, one page: Browse group, Image group, Work group; tabs Edit | Ta
 Browse (always visible):
                     filter-split filter-clip filter-status filter-class (all <select>, option value = filter value; for the class
                     filter the value is the base id)   frame-count (text = total of the current filter)
-                    carousel (the horizontal strip)  frame-card (one per visible thumbnail in it; attrs data-stem data-split data-status;
-                    clicking opens the frame)  tag-ok tag-fix tag-drop tag-todo (buttons: tag the current frame; Shift+1..4 too)
-                    Keys: Left/Right (or P/N) step, Home/End first/last frame
+                    nav-prev nav-next (buttons; wrap: Next on the last frame -> first, Prev on the first -> last)
+                    nav-pos (text "i / N", attrs data-index = 1-based position of the current frame in the filter, data-total = N)
+                    tag-ok tag-fix tag-drop tag-todo (buttons: tag the current frame; Shift+1..4 too)
+                    Keys: Left/Right (or P/N) step with wrap-around, Shift+1..4 tag
 Editor:             editor-canvas (the display canvas)   editor (root; data-dirty="true|false")
                     tool-brush tool-erase tool-region tool-polygon tool-sam (buttons)
                     brush-size (<input>)   brush-shape (<select> values round|square)

@@ -175,10 +175,13 @@ reserved group key `__ignore__` whose members map to 255)
 1. A header with the title, the menu tabs Edit | Taxonomy | Rules, and `?`.
 2. **Browse group (permanent; not a tab):**
    - The filter bar: split, clip, status, conf range, low range, class with min px, edited, sort, reset, and the count.
-   - A horizontal, virtual-scrolled **carousel** of thumbnails over the filtered list. The current frame is highlighted
-     and centred. Cards show the short name (`C-0001 · 000215`, full stem in the tooltip), conf and a status badge.
-   - Tag buttons ok, fix, drop and todo act on the current frame, plus first/prev/next/last buttons.
-   - Click opens a frame; the wheel or a drag scrolls the strip.
+   - One navigation row: `← Prev`, the position `i / N` within the filter, `Next →`, and the tag buttons ok, fix, drop and
+     todo for the current frame. There are **no thumbnails**.
+   - **Wrap-around ("carousel"):** Next on the last frame of the filter goes to the first, and Prev on the first goes to
+     the last. When `GET /api/frames/{stem}` returns `next`/`prev` as `null`, the frontend fetches `offset=0` or
+     `offset=total-1` with the same filter. A one-frame filter stays put, and an empty filter shows "no frames".
+   - The nav row and the tags sit in the group header, so they stay visible when Browse is collapsed; only the filter
+     bar folds away. A filter-only hash change (e.g. Reset) refreshes Prev/Next for the new filter.
 3. **Image group:** the editor canvas for the current frame, shown on **every** tab.
    - Its height is resizable with a drag handle that's remembered; double-click resets it to the viewport height minus
      400 px.
@@ -193,9 +196,8 @@ reserved group key `__ignore__` whose members map to 255)
 The state is kept in `localStorage` per group id, inside try/catch. Picker hierarchies with no pixels in the frame start
 collapsed.
 
-**Navigation keys (all tabs, when focus is not in an input):** `←`/`→` and `N`/`P` step through the carousel (autosaving
-when dirty), `Home`/`End` jump to the first or last frame, and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by
-`e.code`).
+**Navigation keys (all tabs, when focus is not in an input):** `←`/`→` and `N`/`P` step with wrap-around (autosaving when
+dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.code`).
 
 **Edit:**
 - **Rendering:**
@@ -236,7 +238,7 @@ when dirty), `Home`/`End` jump to the first or last frame, and `Shift+1`–`4` t
   - `Ctrl+S` saves: the grid is encoded to a PNG (canvas with R=G=B=id, A=255), then `PUT`.
   - Leaving the frame autosaves (on `N`/`P` or navigation) when it's dirty.
   - A "Revert to original" button asks for confirmation.
-  - `N`/`P` (or `←`/`→`) move through the carousel, and the next two frames' image and mask are preloaded.
+  - `N`/`P` (or `←`/`→`) move through the filter with wrap-around, and the next two frames' image and mask are preloaded.
 - **View-through-map:** a map selector; when it's set, the overlay is coloured by `preview.lut` and editing still works in
   base ids.
 - **Status keys:** `Shift+1`–`4` (see Navigation keys). `Cmd+digit` is left to the browser.
@@ -261,8 +263,9 @@ Leaving the tab restores the map chosen under Edit → View.
 Apply shows job progress.
 
 **Additional keys:** `G` toggles the pixel grid, `X` swaps the active and secondary class, `+`/`-` zoom, and `?` shows every shortcut.
-**Test hooks:** the `data-testid` attributes listed in `lab/tests/e2e/conftest.py` (v26.1.1 adds `carousel`,
-`tag-ok|fix|drop|todo`, `group-<id>` with `data-collapsed`, and `group-toggle`; `tab-browse` is gone), and `window.__lab` with `state()`,
+**Test hooks:** the `data-testid` attributes listed in `lab/tests/e2e/conftest.py` (v26.1.1 adds `nav-prev`,
+`nav-next`, `nav-pos` with `data-index` and `data-total`, `tag-ok|fix|drop|todo`, `group-<id>` with `data-collapsed`, and
+`group-toggle`; `tab-browse`, `carousel` and `frame-card` are gone), and `window.__lab` with `state()`,
 `imgToClient(x,y)` and `getPixel(x,y)`. Keep them stable, because the E2E suite depends on them.
 **Merge colour:** the colour chosen in the map builder only shows on the card swatch. An exported merged class takes its
 first member's colour, because the map format has no colour field.

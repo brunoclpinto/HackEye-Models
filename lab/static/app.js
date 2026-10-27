@@ -13,8 +13,7 @@ const TABS = ["edit", "taxonomy", "rules"], TITLES = { edit: "Work: Edit", taxon
 const TAGS = { Digit1: "ok", Digit2: "fix", Digit3: "drop", Digit4: "todo" };
 
 const HELP = [
-  ["Frames", [["Left / Right, P / N", "previous / next frame in the Browse filter (autosaves)"], ["Home / End", "first / last frame"], ["Shift+1 2 3 4", "tag ok / fix / drop / todo"],
-    ["Click / drag / wheel on the carousel", "open frame / scroll the strip"]]],
+  ["Frames", [["Left / Right, P / N", "previous / next frame in the Browse filter; wraps around at both ends (autosaves)"], ["Shift+1 2 3 4", "tag ok / fix / drop / todo"]]],
   ["Tools", [["B", "brush (size 1-64)"], ["E", "erase to secondary class"], ["R", "region relabel (Shift = whole class)"], ["L", "polygon / lasso (Enter or dbl-click closes, Esc cancels)"],
     ["S", "SAM: left/right click = +/- point, drag = box, Tab cycles, Enter applies, Esc clears"], ["[  ]", "brush size"], ["Q", "round / square"], ["X", "swap active and secondary class"]]],
   ["Classes", [["1-9", "pick recent class"], ["/", "search classes"], ["Alt+click", "eyedropper (pick class under cursor)"], ["Shift+Alt+click", "protect class under cursor"],
@@ -57,6 +56,7 @@ async function doRoute() {
     prevTab = r.tab;
   }
   if (stem && stem !== editor.currentStem()) await editor.show(stem, r.qs);
+  else if (stem && r.qs !== editor.currentQS()) await editor.setFilter(r.qs);
 }
 
 function renderMeta() {
@@ -75,7 +75,6 @@ function onKeyDown(e) {
   if (typing(e.target)) { if (e.key === "Escape") e.target.blur(); else if (!(mod && e.key.toLowerCase() === "s")) return; }
   if (e.key === "?" && !mod) { toggleHelp(true); e.preventDefault(); return; }
   if (!mod && !e.altKey && e.shiftKey && TAGS[e.code]) { editor.setStatus(TAGS[e.code]); e.preventDefault(); return; }
-  if (!mod && !e.altKey && !e.shiftKey && (e.key === "Home" || e.key === "End")) { browser.jump(e.key === "Home" ? "first" : "last"); e.preventDefault(); return; }
   if (editor.onKey(e)) e.preventDefault();
 }
 
