@@ -30,6 +30,13 @@ models are named `Yolo26<size>-sem-<dataset><classes>-HackEye-<train res>.pt`. T
 `taxonomies/HackEye26.1-48.yaml`. See **PROGRESS.md** for how
 each was trained and evaluated.
 
+## Models Lab
+
+`lab/` is a web tool for HackEye datasets: browse and tag frames, correct masks pixel by pixel (SAM2
+click-to-outline included), run bulk class rules, and build taxonomies (create, split, merge and expand classes, save a
+merge map and export it as a new dataset). It runs as the compose services `lab` and `sam` and is served at
+`https://megabeast.tail97a14.ts.net:8443/`. See **[lab/README.md](lab/README.md)**.
+
 ## Taxonomies
 
 `taxonomies/` holds the base taxonomy (`vistas124.json`, generated from Vistas' `config_v2.0.json`) and the

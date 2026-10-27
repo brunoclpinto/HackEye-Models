@@ -128,6 +128,7 @@ def run(src: Path, dst: Path, map_path: Path, tax: Taxonomy, taxonomy_sha: str, 
         "n_classes": merged.n,
         "void_ids": merged.void_ids,
         "members": {merged.names[i]: [raw[c] for c in m] for i, m in merged.members.items()},
+        "ignored": [raw[c] for c in merged.ignored],
         "old_to_new": {int(c): int(merged.lut[c]) for c in tax.ids},
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "splits": {},
@@ -177,8 +178,9 @@ def run(src: Path, dst: Path, map_path: Path, tax: Taxonomy, taxonomy_sha: str, 
         unknown = int(src_counts[~known & (np.arange(256) != IGNORE_LABEL)].sum())
         if unknown:
             mismatches.append(f"{unknown} source pixels with ids not in the taxonomy")
-        if int(dst_counts[IGNORE_LABEL]) != int(src_counts[IGNORE_LABEL]) + unknown:
-            mismatches.append(f"ignore pixels {int(dst_counts[IGNORE_LABEL])} != {int(src_counts[IGNORE_LABEL]) + unknown}")
+        want_ign = int(src_counts[IGNORE_LABEL]) + unknown + int(src_counts[merged.ignored].sum())
+        if int(dst_counts[IGNORE_LABEL]) != want_ign:
+            mismatches.append(f"ignore pixels {int(dst_counts[IGNORE_LABEL])} != {want_ign}")
         stray = int(dst_counts[merged.n:IGNORE_LABEL].sum())
         if stray:
             mismatches.append(f"{stray} pixels with ids in [{merged.n}, {IGNORE_LABEL})")

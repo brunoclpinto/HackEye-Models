@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HackEye Models Lab</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="top">
+  <h1>Models Lab</h1>
+  <nav id="tabs">
+    <a href="#browse" data-tab="browse" data-testid="tab-browse">Browse</a>
+    <a href="#edit" data-tab="edit" data-testid="tab-edit">Edit</a>
+    <a href="#taxonomy" data-tab="taxonomy" data-testid="tab-taxonomy">Taxonomy</a>
+    <a href="#rules" data-tab="rules" data-testid="tab-rules">Rules</a>
+  </nav>
+  <span class="grow"></span>
+  <button id="helpBtn" title="Keyboard shortcuts (?)">?</button>
+</header>
+
+<main id="pages">
+  <section id="page-browse" class="page" hidden>
+    <form id="bFilter" class="bar" autocomplete="off">
+      <label>Split <select name="split" data-testid="filter-split"><option value="">all</option><option>train</option><option>val</option></select></label>
+      <label>Clip <select name="clip" data-testid="filter-clip"><option value="">all</option></select></label>
+      <label>Status <select name="status" data-testid="filter-status"><option value="">any</option><option>todo</option><option>ok</option><option>fix</option><option>drop</option><option>edited</option></select></label>
+      <label>Conf <input name="cmin" type="number" step="0.01" min="0" max="1" placeholder="min"><input name="cmax" type="number" step="0.01" min="0" max="1" placeholder="max"></label>
+      <label>Low <input name="lmin" type="number" step="0.01" min="0" max="1" placeholder="min"><input name="lmax" type="number" step="0.01" min="0" max="1" placeholder="max"></label>
+      <label>Class <select name="cls" data-testid="filter-class"><option value="">any</option></select></label>
+      <label>Min px <input name="minpx" type="number" step="100" min="0" placeholder="2000"></label>
+      <label>Edited <select name="edited"><option value="">any</option><option value="1">yes</option><option value="0">no</option></select></label>
+      <label>Sort <select name="sort"><option value="time">time</option><option value="conf">conf asc</option><option value="-conf">conf desc</option><option value="low">lowconf</option><option value="-edited">recently edited</option></select></label>
+      <button type="button" id="bReset">Reset</button>
+      <span class="grow"></span>
+      <span id="bCount" data-testid="frame-count" class="muted mono"></span>
+    </form>
+    <div id="bScroll" tabindex="0"><div id="bSpacer"></div></div>
+    <div class="hint pad">Click select · Shift/Cmd-click multi · arrows move · 1 ok · 2 fix · 3 drop · 4 todo · Enter/double-click opens editor</div>
+  </section>
+
+  <section id="page-edit" class="page" data-testid="editor" data-dirty="false" hidden>
+    <aside id="ePicker"></aside>
+    <div id="eMain">
+      <div id="eBar" class="bar">
+        <div class="seg" id="eTools">
+          <button data-testid="tool-brush" data-tool="brush" title="Brush (B)">Brush</button>
+          <button data-testid="tool-erase" data-tool="erase" title="Erase to secondary class (E)">Erase</button>
+          <button data-testid="tool-region" data-tool="region" title="Region relabel (R)">Region</button>
+          <button data-testid="tool-polygon" data-tool="polygon" title="Polygon / lasso (L)">Lasso</button>
+          <button data-testid="tool-sam" data-tool="sam" title="SAM2 (S)">SAM</button>
+        </div>
+        <label title="Brush size ([ and ])">Size <input id="eSize" data-testid="brush-size" type="range" min="1" max="64" value="8"><b id="eSizeV" class="mono">8</b></label>
+        <select id="eShape" data-testid="brush-shape" title="Round / square (Q)"><option value="round">Round</option><option value="square">Square</option></select>
+        <label title="Overlay opacity">Opacity <input id="eOpacity" type="range" min="0" max="100" value="55"></label>
+        <button id="eMask" title="Toggle mask (M)">Mask</button>
+        <button id="eOutline" title="Outline mode (O)">Outline</button>
+        <button id="eGrid" title="Pixel grid (G), shown from 8x">Grid</button>
+        <label>View map <select id="eMap"><option value="">none</option></select></label>
+        <button id="eFit" title="Fit (F)">Fit</button>
+        <button id="e11" title="Actual pixels (0)">1:1</button>
+        <span class="sep"></span>
+        <button id="eUndo" title="Undo (Ctrl+Z)">Undo</button>
+        <button id="eRedo" title="Redo (Ctrl+Shift+Z)">Redo</button>
+        <button id="eSave" data-testid="btn-save" class="primary" title="Save (Ctrl+S)">Save</button>
+        <button id="eRevert" data-testid="btn-revert" title="Revert to original">Revert</button>
+        <span class="sep"></span>
+        <div class="seg" id="eStatus">
+          <button data-st="ok" title="Ctrl+1">ok</button><button data-st="fix" title="Ctrl+2">fix</button>
+          <button data-st="drop" title="Ctrl+3">drop</button><button data-st="todo" title="Ctrl+4">todo</button>
+        </div>
+        <span class="sep"></span>
+        <button id="ePrev" title="Previous (P)">&larr; P</button>
+        <button id="eNext" title="Next (N)">N &rarr;</button>
+        <button id="eBack" title="Back to Browse">Browse</button>
+      </div>
+      <div id="eInfo" class="bar slim"></div>
+      <div id="eStage"><canvas id="eCanvas" data-testid="editor-canvas"></canvas><div id="eLoading" class="loading" hidden>Loading...</div></div>
+    </div>
+  </section>
+
+  <section id="page-taxonomy" class="page" hidden>
+    <div id="tLeft" class="col">
+      <div class="bar">
+        <input id="tFilter" type="search" placeholder="Filter classes" autocomplete="off">
+        <button id="tNew" data-testid="btn-new-class">New class</button>
+        <button id="tSplit" data-testid="btn-split">Split</button>
+        <button id="tEdit" data-testid="btn-edit-class">Edit</button>
+        <button id="tDelete" data-testid="btn-delete-class">Delete</button>
+        <span class="grow"></span>
+        <button id="tVoid" title="Move checked classes under __ignore__">Void checked</button>
+        <button id="tMerge" data-testid="btn-merge" class="primary" title="Merge checked classes into one group">Merge checked</button>
+      </div>
+      <div id="tTable" class="scroll"></div>
+    </div>
+    <div id="tRight" class="col">
+      <div class="bar">
+        <label>Map <select id="tMapSel" data-testid="map-load"><option value="">(choose)</option></select></label>
+        <button id="tLoad">Load</button>
+        <button id="tIdentity">Identity</button>
+        <span class="grow"></span>
+        <span class="muted mono">N =</span> <b id="tN" data-testid="preview-n" class="mono"></b>
+      </div>
+      <div id="tGroups" class="scroll"></div>
+      <div id="tSaveBar" class="bar wrap">
+        <input id="tName" data-testid="map-name" type="text" autocomplete="off" spellcheck="false" size="26">
+        <button id="tSaveMap" data-testid="btn-save-map">Save map</button>
+        <button id="tExport" data-testid="btn-export" class="primary">Save as new dataset</button>
+        <div id="tJob" data-testid="job-status" class="job" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="page-rules" class="page" hidden>
+    <div class="card">
+      <h2>Bulk class rule</h2>
+      <p class="hint">Relabel every pixel of one class to another across the filtered frames. Dry run first.</p>
+      <div class="form">
+        <div class="two"><label>From class <select id="rFrom" data-testid="rule-from"></select></label><label>To class <select id="rTo" data-testid="rule-to"></select></label></div>
+        <div class="two"><label>Split <select id="rSplit"><option value="">all</option><option>train</option><option>val</option></select></label>
+          <label>Clip <select id="rClip"><option value="">all</option></select></label></div>
+        <label>Only these stems (optional, whitespace or comma separated) <textarea id="rStems" rows="2"></textarea></label>
+        <div class="row"><button id="rDry" data-testid="btn-dry-run">Dry run</button><button id="rApply" class="primary" disabled>Apply</button></div>
+      </div>
+      <div id="rResult"></div>
+      <div id="rJob" class="job" hidden></div>
+    </div>
+  </section>
+</main>
+
+<footer id="status" class="mono">
+  <span id="sb-version"></span><span id="sb-dataset"></span><span id="sb-sam" data-testid="sam-status"></span>
+  <span class="grow"></span>
+  <span id="sb-tool"></span><span id="sb-zoom"></span><span id="sb-cursor" data-testid="readout"></span>
+</footer>
+
+<div id="help" hidden><div class="card help-card"></div></div>
+<div id="modal" hidden></div>
+<div id="toasts"></div>
+<script type="module" src="/static/app.js"></script>
+</body>
+</html>

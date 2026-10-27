@@ -16,7 +16,9 @@ identical to the original `vistas_config.build_merge_lut`:
 * void members are un-voided into their group;
 * classes not listed keep their own class (unlisted void ones stay void, i.e.
   still mapped to ignore through the yaml's label_mapping);
-* new ids are dense, ordered by the lowest original id of each output class.
+* new ids are dense, ordered by the lowest original id of each output class;
+* the reserved group `__ignore__` (IGNORE_GROUP) lists classes whose pixels become
+  the ignore label 255 in the derived dataset; they get no output class.
 """
 
 from __future__ import annotations
@@ -32,6 +34,7 @@ import numpy as np
 import yaml
 
 IGNORE_LABEL = 255
+IGNORE_GROUP = "__ignore__"
 MAX_CLASS_ID = 254
 
 _VISTAS_CONVERSION = Path(__file__).resolve().parents[1] / "vistas" / "conversion"
@@ -178,6 +181,7 @@ class Merged:
     palette: dict[int, tuple[int, int, int]]  # group's FIRST listed member's colour
     void_ids: list[int]  # new ids that remain ignored
     members: dict[int, list[int]]  # new id -> base ids
+    ignored: list[int] = field(default_factory=list)  # base ids sent to 255 by the __ignore__ group
 
     @property
     def n(self) -> int:
@@ -204,10 +208,13 @@ def resolve_merge_map(tax: Taxonomy, groups: dict[str, list[str]]) -> Merged:
 
     names0, palette0, void0 = tax.names, tax.palette, set(tax.void_ids)
     entries: list[tuple[int, str, list[int]]] = []
+    ignored = sorted(resolved.get(IGNORE_GROUP, []))
     for cid in tax.ids:
         if cid not in owner:
             entries.append((cid, names0[cid], [cid]))
     for group, ids in resolved.items():
+        if group == IGNORE_GROUP:
+            continue
         entries.append((min(ids), group, ids))
     entries.sort(key=lambda e: e[0])
 
@@ -228,7 +235,7 @@ def resolve_merge_map(tax: Taxonomy, groups: dict[str, list[str]]) -> Merged:
     if len(set(names.values())) != len(names):
         dupes = {n for n in names.values() if list(names.values()).count(n) > 1}
         raise ValueError(f"merged class names collide: {dupes} -- rename the merge group(s)")
-    return Merged(lut=lut, names=names, palette=palette, void_ids=void_ids, members=members)
+    return Merged(lut=lut, names=names, palette=palette, void_ids=void_ids, members=members, ignored=ignored)
 
 
 def load_merge_map(path: str | Path) -> dict[str, list[str]]:

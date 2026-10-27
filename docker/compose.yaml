@@ -62,3 +62,49 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+
+  # ---- Models Lab (lab/PLAN.md). `docker compose up -d lab sam` starts only these two. ----
+  lab:
+    build:
+      context: ..
+      dockerfile: lab/Dockerfile
+    image: hackeye-models-lab
+    working_dir: /app
+    user: "${UID:-1000}:${GID:-1000}"
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8766:8766"
+    environment:
+      LAB_DATASET: ${LAB_DATASET:-/datasets/HackEye26.1-124}
+      LAB_DATASETS_ROOT: ${LAB_DATASETS_ROOT:-/datasets}
+      LAB_REPO: /app
+      SAM_URL: ${SAM_URL:-http://sam:8000}
+    volumes:
+      - ..:/app
+      - ${HACKEYE_DATASETS_DIR:-../../../media/hackeye-models/datasets}:/datasets
+      - ${HACKEYE_RUNS_DIR:-../../../media/hackeye-models/runs}:/runs
+    # no depends_on sam: the lab works without it
+
+  sam:
+    build:
+      context: ../lab/sam
+    image: hackeye-models-sam
+    user: "${UID:-1000}:${GID:-1000}"
+    restart: unless-stopped
+    environment:
+      SAM_DATASET: ${SAM_DATASET:-HackEye26.1-124}
+      # no passwd entry for the host uid: torch (getpass) wants these, HOME must be writable
+      HOME: /tmp
+      USER: lab
+      LOGNAME: lab
+      SAM_IDLE_S: ${SAM_IDLE_S:-600}
+    volumes:
+      - ${HACKEYE_DATASETS_DIR:-../../../media/hackeye-models/datasets}:/datasets:ro
+      - ${MODELS_DIR:-../../../models}/sam2:/models:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

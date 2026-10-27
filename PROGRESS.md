@@ -63,6 +63,18 @@ training; then 300-500 labeled production frames for a fine-tune, oversampled
 class the 544 fine-tune lost). Only real portrait footage can test the extra
 near-ground field of view; the sky-padded simulation can't.
 
+## Models Lab v0.1.0 (2026-10-27)
+
+`lab/` is a web tool for browsing, tagging and pixel-correcting HackEye26.1-124 masks (brush, region relabel, polygon/lasso,
+SAM2 click-to-outline, protect source class). It also does bulk class rules and taxonomy building: create, split, merge
+and expand classes, then save a map and export a dataset under a name the user types.
+- **Services:** compose `lab` (CPU, 127.0.0.1:8766, served on the tailnet at :8443) and `sam` (GPU, SAM2.1 large, idle
+  unload after 10 minutes).
+- **Repo restructure (7b32817):** `taxonomies/` holds `vistas124.json` and `HackEye26.1-48.yaml`, and `datasets/common/`
+  holds `taxonomy.py` and `dataset_merge.py`. The 124→48 LUT is byte-identical (sha a84b7dd1).
+- **Tests:** 35 unit tests and 10 Playwright E2E tests on a 20-frame fixture copy. The master took no test edits.
+- **Next (user):** correct masks in the lab, then run `sync_lab_edits.py`, then the Drive copy and the retrain.
+
 ## HackEye frames dataset (2026-10-26): pseudo-labelled media library
 
 **Status (2026-10-27): done, curated and renamed `HackEye26.1-124`.** 17,347 frames, both splits curated

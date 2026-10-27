@@ -130,3 +130,44 @@ def test_lut_equals_build_merge_lut_on_vistas():
     assert hashlib.sha256(new.lut.tobytes()).hexdigest() == "a84b7dd1f00ea42b1ade293d260ce6d5ce4ff30c4257e009e30c1671e1d58a78"
     # the shipped vistas124.json equals what the config generates
     assert load_taxonomy_json(REPO / "taxonomies" / "vistas124.json") == tax
+
+
+def test_ignore_group_maps_to_255():
+    tax = tiny_tax()
+    m = resolve_merge_map(tax, {"flat": ["construction--flat--*"], "__ignore__": ["object--vehicle--truck"]})
+    # flat (road+sidewalk), car, unlabeled, curb ramp; truck gets no output class
+    assert m.n == 4
+    assert m.ignored == [3]
+    assert m.lut[3] == 255
+    assert all(3 not in mem for mem in m.members.values())
+    assert "__ignore__" not in m.names.values()
+    assert sorted(m.names) == list(range(m.n))
+
+
+def test_ignore_group_conflict_and_empty_match():
+    tax = tiny_tax()
+    with pytest.raises(ValueError, match="claimed by both"):
+        resolve_merge_map(tax, {"a": ["object--vehicle--truck"], "__ignore__": ["object--vehicle--*"]})
+    with pytest.raises(ValueError, match="matches no class"):
+        resolve_merge_map(tax, {"__ignore__": ["nope--*"]})
+
+
+def test_ignore_group_export_accounting(tmp_path):
+    tax = tiny_tax()
+    src = tmp_path / "src"
+    for d in ("images", "masks"):
+        for sp in ("train", "val"):
+            (src / d / sp).mkdir(parents=True)
+    arr = np.zeros((8, 8), np.uint8)
+    arr[:, 4:] = 3
+    arr[0, 0] = 255
+    im = Image.fromarray(arr, "P")
+    im.putpalette(tax.palette_bytes())
+    im.save(src / "masks" / "train" / "a.png")
+    Image.new("RGB", (8, 8)).save(src / "images" / "train" / "a.jpg")
+    (src / "src.yaml").write_text(yaml.safe_dump(data_yaml_dict(tax.names, tax.void_ids, str(src))))
+    mp = tmp_path / "m.yaml"
+    save_merge_map({"__ignore__": ["object--vehicle--truck"]}, mp)
+    assert dataset_merge.run(src, tmp_path / "dst", mp, tax, "x", ["train"], 1, False)
+    out = np.asarray(Image.open(tmp_path / "dst" / "masks" / "train" / "a.png"))
+    assert (out == 255).sum() == 33
