@@ -4,7 +4,7 @@ A web tool for HackEye datasets. It lets you browse and tag frames, correct mask
 click-to-outline), run bulk class rules, and build taxonomies: create, split, merge and expand classes, then save a merge
 map and export it as a new dataset. The current rules (API, data model, safety) are in [CONTRACTS.md](CONTRACTS.md), the history in
 [docs/DECISIONS.md](docs/DECISIONS.md), and the approved plans plus the milestone status in [docs/plans/](docs/plans/).
-The version is in `lab/VERSION` (v26.1.1, milestone **lab26.1**, developed on branch `lab26.1`).
+The version is in `lab/VERSION` (v26.1.2, milestone **lab26.1**, developed on branch `lab26.1`).
 
 **Open it at `https://megabeast.tail97a14.ts.net:8443/`** (tailnet only). That address is `tailscale serve --https=8443`
 pointing at `127.0.0.1:8766`.
@@ -54,6 +54,7 @@ collapses from its header, and the image height can be dragged.
 
 | Keys | Action |
 |---|---|
+| `V` | Inspect (the default tool): click or tap an item to get its box and label (class · id · px); `Esc` clears, `Enter` relabels it to the active class |
 | `B` / `E` / `R` / `L` / `S` | brush / erase to secondary class / region relabel (Shift: whole class) / polygon-lasso / SAM |
 | `[` `]`, `Q`, `X` | brush size, round or square, swap active and secondary class |
 | wheel, Space-drag or middle-drag, `F`, `0`, `+` `-` | zoom to the cursor (up to 32×), pan, fit, 1:1, zoom |
@@ -77,8 +78,18 @@ docker compose run --rm --entrypoint python lab -m pytest lab/tests datasets/com
 `run.sh` copies 20 real frames to `/runs/lab-e2e/` and runs a throwaway lab on port 8767, so the master never receives
 test edits. It cleans up after itself.
 
-## Known limits (v26.1.1)
+## Touch (iPhone or iPad, Chrome or Safari)
 
+- **Two fingers:** pinch to zoom, move to pan.
+- **One finger, Inspect tool:** at fit size it scrolls the page; once zoomed in it pans the image. A tap selects an item
+  (box plus label), and a double-tap toggles fit and 4×.
+- **Editing tools:** they work with one finger. A second finger cancels the stroke in progress. In SAM, `− point` makes
+  the next taps negative.
+- **On a phone,** Browse starts collapsed, but Prev/Next and the tags stay in its header.
+
+## Known limits (v26.1.2)
+
+- Touch was tested with Chromium and WebKit emulation (synthetic multi-touch), not yet on a real iPhone.
 - On a 900 px high screen the work panel starts below the fold. Use the recents (`1`–`9`) or collapse or shrink the
   image group.
 

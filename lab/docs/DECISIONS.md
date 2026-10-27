@@ -143,3 +143,46 @@ first previous goes to last. don't bump version for this fix."
   is unchanged.
 - Plan: [`plans/v26.1.1-followup-navigation.md`](plans/v26.1.1-followup-navigation.md).
 - The E2E tests check the wrap-around in both directions.
+
+## v26.1.2 — touch support and the click-to-inspect box (branch `lab26.1`)
+**Prompt.** The user tested in Chrome on iOS: "image area does not accept pinch zoom nor scroll, it should. when i click an
+item in the image need bounding box with classe name like its used in hackeye lab." They also set a standing rule: "go
+for it" now means the full drill (plan, execute, tests, docs, version, commit, push, mail).
+
+**Decisions (Opus, under "go for it"):**
+- **Inspect (`V`) is a new tool and the default**, so a click or tap never paints by accident. An "item" is the
+  4-connected region of the class under the pointer. The box and label copy the HackEye Lab's `drawHazard` look, and the
+  label reads `<name> · id · px` (plus the merged name when view-through-map is on). `Enter` relabels the selection, which
+  makes Inspect a quick way to fix a whole wrong region.
+- **Touch:**
+  - two fingers pinch and pan with any tool;
+  - one finger in Inspect scrolls the page at fit (`pan-y`) and pans when zoomed;
+  - editing tools take one finger, and a second finger rolls back the stroke;
+  - SAM gets a negative-point toggle;
+  - the layout works at phone width.
+- **Version bump to v26.1.2:** this is new capability, unlike the v26.1.1 navigation fix.
+
+**Worker choices (Sonnet):**
+- Browse starts collapsed on phones (its nav row stays in the header).
+- Double-tap works only in Inspect.
+- A touch Region fill applies on lift, so a second finger can still cancel it.
+- New `__lab` hooks: `selection` and `clientToImg`.
+- New E2E files `test_inspect.py` and `test_touch.py`; the touch tests run on **both Chromium touch emulation and WebKit**.
+
+**Opus review (screenshots):**
+- Desktop 1440×900: a sidewalk selection showed a magenta box with "flat sidewalk · id 24 · 139759 px".
+- iPhone 12 Pro Max emulation (428×926 @3×): zoomed in, with a car selected ("vehicle car · id 108 · 3942 px").
+- Both looked correct.
+
+**Result:** 39 unit tests and 28 E2E tests pass: inspect (checked against a flood fill of the fixture mask), Esc, Enter with
+undo, redo, save and protect, pinch keeping the midpoint within 1 px, two-finger pan, one-finger pan, tap, double-tap,
+stroke rollback, the SAM toggle, and no horizontal scroll at 428 px.
+
+**Known / possible issues:**
+- **Not verified on a real iPhone:**
+  - whether iOS hands the first finger to a page scroll at fit zoom;
+  - pinches whose first finger drifts vertically;
+  - real `gesturestart` suppression;
+  - double-tap timing;
+  - the iOS toolbar and safe areas.
+- The tests synthesise multi-touch with PointerEvents rather than real hardware.

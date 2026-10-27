@@ -9,7 +9,9 @@ Global hook (editor page), `window.__lab`:
   state()            -> {stem, zoom, tool, cls, dirty, samCandidates}   zoom = display zoom factor, tool = 'brush'|'erase'|
                         'region'|'polygon'|'sam', cls = active base id, dirty = unsaved edits, samCandidates = number of SAM masks shown
   imgToClient(x, y)  -> {x, y}  client (viewport) coordinates of the CENTRE of image pixel (x, y)
+  clientToImg(cx, cy)-> {x, y, fx, fy} image pixel (floored) and float image coords under a client point
   getPixel(x, y)     -> base id of the editor's mask grid at that pixel
+  state().selection  -> null or {id, px, bbox:[x0,y0,x1,y1] inclusive, label}  (Inspect selection)
 Layout (v26.1.1, one page: Browse group, Image group, Work group; tabs Edit | Taxonomy | Rules, default Edit; no Browse tab):
                     tab-edit tab-taxonomy tab-rules      sam-status (data-available="true|false")
                     group-<id> (every group/sub-group; attr data-collapsed="true|false"; ids browse image work edit-classes edit-tools
@@ -23,6 +25,7 @@ Browse (always visible):
                     tag-ok tag-fix tag-drop tag-todo (buttons: tag the current frame; Shift+1..4 too)
                     Keys: Left/Right (or P/N) step with wrap-around, Shift+1..4 tag
 Editor:             editor-canvas (the display canvas)   editor (root; data-dirty="true|false")
+                    tool-inspect (default tool) sam-negative (toggle: next SAM taps are negative)  selection-label (text of the box label)
                     tool-brush tool-erase tool-region tool-polygon tool-sam (buttons)
                     brush-size (<input>)   brush-shape (<select> values round|square)
                     picker-search (<input>)  picker-item (one per class; attr data-id = base id)  active-class (data-id)
@@ -131,11 +134,40 @@ def clean_frame(frames):
 
 
 @pytest.fixture(scope="session")
-def browser():
+def pw():
     with sync_playwright() as p:
-        b = p.chromium.launch(headless=True)
-        yield b
-        b.close()
+        yield p
+
+
+@pytest.fixture(scope="session")
+def browser(pw):
+    b = pw.chromium.launch(headless=True)
+    yield b
+    b.close()
+
+
+@pytest.fixture(scope="session", params=["chromium", "webkit"])
+def touch_browser(pw, request):
+    """Touch tests run on Chromium touch emulation and on WebKit (what iOS Chrome/Safari use), when WebKit can launch."""
+    try:
+        b = getattr(pw, request.param).launch(headless=True)
+    except Exception as e:  # noqa: BLE001
+        pytest.skip(f"{request.param} not available: {e}")
+    yield b
+    b.close()
+
+
+@pytest.fixture
+def touch_page(touch_browser):
+    """iPhone 12 Pro Max-sized touch context (428x926, hasTouch, isMobile)."""
+    ctx = touch_browser.new_context(viewport={"width": 428, "height": 926}, device_scale_factor=2, has_touch=True, is_mobile=True)
+    pg = ctx.new_page()
+    pg.set_default_timeout(30_000)
+    pg.errors = []
+    pg.on("pageerror", lambda e: pg.errors.append(str(e)))
+    pg.on("dialog", lambda d: d.accept())
+    yield pg
+    ctx.close()
 
 
 @pytest.fixture

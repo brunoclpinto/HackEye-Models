@@ -14,11 +14,11 @@ const TAGS = { Digit1: "ok", Digit2: "fix", Digit3: "drop", Digit4: "todo" };
 
 const HELP = [
   ["Frames", [["Left / Right, P / N", "previous / next frame in the Browse filter; wraps around at both ends (autosaves)"], ["Shift+1 2 3 4", "tag ok / fix / drop / todo"]]],
-  ["Tools", [["B", "brush (size 1-64)"], ["E", "erase to secondary class"], ["R", "region relabel (Shift = whole class)"], ["L", "polygon / lasso (Enter or dbl-click closes, Esc cancels)"],
+  ["Tools", [["V", "inspect (default): click or tap an item to box it with its class name; Esc clears, Enter relabels it to the active class"], ["B", "brush (size 1-64)"], ["E", "erase to secondary class"], ["R", "region relabel (Shift = whole class)"], ["L", "polygon / lasso (Enter or dbl-click closes, Esc cancels)"],
     ["S", "SAM: left/right click = +/- point, drag = box, Tab cycles, Enter applies, Esc clears"], ["[  ]", "brush size"], ["Q", "round / square"], ["X", "swap active and secondary class"]]],
   ["Classes", [["1-9", "pick recent class"], ["/", "search classes"], ["Alt+click", "eyedropper (pick class under cursor)"], ["Shift+Alt+click", "protect class under cursor"],
     ["Right-click a chip", "set secondary (Erase) class"], ["Double-click a chip", "set protect class"]]],
-  ["View", [["Wheel", "zoom to cursor (fit - 32x)"], ["Space-drag / middle-drag", "pan"], ["F", "fit"], ["0", "actual pixels (1:1)"], ["+ / -", "zoom"], ["M", "toggle mask"], ["O", "outline mode"], ["G", "pixel grid (shown from 8x)"],
+  ["View", [["Wheel / two-finger pinch", "zoom around the cursor / fingers (fit - 32x)"], ["Two-finger drag", "pan (touch)"], ["Double-tap", "fit / 4x (touch, Inspect)"], ["Space-drag / middle-drag", "pan"], ["F", "fit"], ["0", "actual pixels (1:1)"], ["+ / -", "zoom"], ["M", "toggle mask"], ["O", "outline mode"], ["G", "pixel grid (shown from 8x)"],
     ["Drag the bar under the image", "resize the image (double-click resets)"]]],
   ["File", [["Ctrl/Cmd+Z", "undo"], ["Ctrl/Cmd+Shift+Z or Y", "redo"], ["Ctrl/Cmd+S", "save"], ["?", "this help"], ["Esc", "close dialogs / cancel"]]],
 ];
@@ -51,6 +51,7 @@ async function doRoute() {
   if (tabChanged) {
     $$(".pane").forEach((p) => (p.hidden = p.id !== `pane-${r.tab}`));
     $("#workTitle").textContent = TITLES[r.tab];
+    editor.setInspectOnly(r.tab !== "edit");
     if (prevTab === "taxonomy") taxonomy.hide();
     if (r.tab === "taxonomy") taxonomy.show(); else if (r.tab === "rules") rules.show();
     prevTab = r.tab;

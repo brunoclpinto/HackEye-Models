@@ -27,7 +27,7 @@ export function bindGroup(root, defCollapsed = false) {
   t.addEventListener("click", () => { setCollapsed(root, root.dataset.collapsed !== "true", true); t.blur(); });
   return root;
 }
-export function bindAll(host = document) { host.querySelectorAll(".grp[data-gid]").forEach((g) => { if (!g.hasAttribute("data-testid")) bindGroup(g, g.dataset.def === "collapsed"); }); }
+export function bindAll(host = document) { host.querySelectorAll(".grp[data-gid]").forEach((g) => { if (!g.hasAttribute("data-testid")) bindGroup(g, g.dataset.def === "collapsed" || (g.dataset.gid === "browse" && window.innerWidth < 600)); }); }
 
 /** Build a group element. Returns {root, body, head}. */
 export function makeGroup(id, title, { sub = true, extra = null, collapsed = false, count = "" } = {}) {

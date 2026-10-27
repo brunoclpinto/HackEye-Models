@@ -90,6 +90,23 @@ export class Painter {
     }
     return n;
   }
+  /** 4-connected region of the class under (x, y), without changing anything: {id, n, bbox:[x0,y0,x1,y1] inclusive, mask}. */
+  select(x, y) {
+    const { W, H, grid, stack } = this;
+    if (x < 0 || y < 0 || x >= W || y >= H) return null;
+    const id = grid[y * W + x], mask = new Uint8Array(W * H);
+    let x0 = x, x1 = x, y0 = y, y1 = y, n = 1, sp = 0;
+    mask[y * W + x] = 1; stack[sp++] = y * W + x;
+    while (sp) {
+      const i = stack[--sp], px = i % W, py = (i / W) | 0;
+      if (px < x0) x0 = px; if (px > x1) x1 = px; if (py < y0) y0 = py; if (py > y1) y1 = py;
+      if (px > 0 && !mask[i - 1] && grid[i - 1] === id) { mask[i - 1] = 1; stack[sp++] = i - 1; n++; }
+      if (px < W - 1 && !mask[i + 1] && grid[i + 1] === id) { mask[i + 1] = 1; stack[sp++] = i + 1; n++; }
+      if (py > 0 && !mask[i - W] && grid[i - W] === id) { mask[i - W] = 1; stack[sp++] = i - W; n++; }
+      if (py < H - 1 && !mask[i + W] && grid[i + W] === id) { mask[i + W] = 1; stack[sp++] = i + W; n++; }
+    }
+    return { id, n, bbox: [x0, y0, x1, y1], mask };
+  }
   touch(x, y) {
     if (x < this.x0) this.x0 = x; if (x > this.x1) this.x1 = x;
     if (y < this.y0) this.y0 = y; if (y > this.y1) this.y1 = y;

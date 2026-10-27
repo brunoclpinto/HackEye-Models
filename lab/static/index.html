@@ -30,9 +30,9 @@
         <button data-st="drop" data-testid="tag-drop" title="Tag drop (Shift+3)">drop</button><button data-st="todo" data-testid="tag-todo" title="Tag todo (Shift+4)">todo</button>
       </div>
       <div class="seg">
-        <button id="bPrev" data-testid="nav-prev" title="Previous frame (Left / P); wraps from the first to the last">&larr; Prev</button>
+        <button id="bPrev" data-testid="nav-prev" title="Previous frame (Left / P); wraps from the first to the last">&larr;<span class="lbl"> Prev</span></button>
         <span id="bPos" class="pos mono" data-testid="nav-pos" data-index="0" data-total="0"></span>
-        <button id="bNext" data-testid="nav-next" title="Next frame (Right / N); wraps from the last to the first">Next &rarr;</button>
+        <button id="bNext" data-testid="nav-next" title="Next frame (Right / N); wraps from the last to the first"><span class="lbl">Next </span>&rarr;</button>
       </div>
     </header>
     <div class="gb">
@@ -56,6 +56,7 @@
     <header class="gh">
       <button class="gt"><i class="chev"></i><span>Image</span></button>
       <div id="eInfo" class="info"></div>
+      <span id="selLabel" class="sel-label mono" data-testid="selection-label" hidden></span>
     </header>
     <div class="gb" id="page-edit" data-testid="editor" data-dirty="false">
       <div id="eStage"><canvas id="eCanvas" data-testid="editor-canvas"></canvas><div id="eLoading" class="loading" hidden>Loading...</div></div>
@@ -78,6 +79,7 @@
               <header class="gh"><button class="gt"><i class="chev"></i><span>Tools</span></button></header>
               <div class="gb tools">
                 <div class="seg" id="eTools">
+                  <button data-testid="tool-inspect" data-tool="inspect" title="Inspect: click or tap an item to box it (V)">Inspect</button>
                   <button data-testid="tool-brush" data-tool="brush" title="Brush (B)">Brush</button>
                   <button data-testid="tool-erase" data-tool="erase" title="Erase to secondary class (E)">Erase</button>
                   <button data-testid="tool-region" data-tool="region" title="Region relabel (R)">Region</button>
@@ -86,6 +88,7 @@
                 </div>
                 <label title="Brush size ([ and ])">Size <input id="eSize" data-testid="brush-size" type="range" min="1" max="64" value="8"><b id="eSizeV" class="mono">8</b></label>
                 <select id="eShape" data-testid="brush-shape" title="Round / square (Q)"><option value="round">Round</option><option value="square">Square</option></select>
+                <button id="eSamNeg" data-testid="sam-negative" title="SAM: make the next taps negative points (touch has no right-click)">&minus; point</button>
                 <span id="eSamInfo" class="muted mono"></span>
               </div>
             </section>

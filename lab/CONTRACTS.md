@@ -1,4 +1,4 @@
-# Models Lab — contracts (v26.1.1, current rules)
+# Models Lab — contracts (v26.1.2, current rules)
 
 The history, the user's decisions and the reasons behind each rule are in [`docs/DECISIONS.md`](docs/DECISIONS.md). The
 approved plans are in [`docs/plans/`](docs/plans/).
@@ -219,6 +219,16 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
   - The active class is shown with its swatch.
 - **Protect source class:** a dropdown (none, or a class). When it's set, every tool changes only pixels of that class.
   `Shift+Alt+click` sets it from under the cursor.
+- **Inspect (`V`, the default tool; the only tool on the Taxonomy and Rules tabs):**
+  - A click or tap selects the 4-connected region of the class under the pointer (`Painter.select`, which changes
+    nothing).
+  - **Box** (HackEye Lab style): a 3 px stroke in the class colour, drawn in screen space with a thin dark outer stroke,
+    plus a ~15% tint of the region.
+  - **Label tag** filled with the class colour, above the box's top-left corner (inside when there's no room), clamped:
+    `<name> · id <id> · <N> px`, plus ` · <merged name>` when view-through-map is on. The text is dark or light by luminance.
+  - The selection also shows in the Image header and the status bar.
+  - It clears on `Esc`, an edit, undo or redo, or a frame change.
+  - `Enter` relabels the selection to the active class, respecting protect, as one undoable patch.
 - **Tools (`tools.js`)**, all applied to the grid through `history.record(rect)` beforehand:
   - `B` **Brush:** size 1–64 (`[`/`]`), round or square (`Q`). Strokes interpolate between samples with Bresenham.
     A 1 px square paints exactly one pixel.
@@ -232,6 +242,23 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
     - Each change calls predict, and the best candidate is shown as a hatched highlight; `Tab` cycles the candidates.
     - `Enter` applies the active class (respecting protect) and `Esc` clears.
     - The tool is disabled when SAM is unavailable. Opening a frame prefetches `/api/sam/embed`.
+- **Touch (pointer events; iOS Chrome and Safari are WebKit):**
+  - **Two fingers, any tool:** pinch zooms around the midpoint (fit to 32×), and moving both pans. WebKit
+    `gesturestart`/`gesturechange` are prevented.
+  - **One finger, Inspect:**
+    - at fit zoom the canvas uses `touch-action: pan-y`, so the page scrolls natively and a tap selects;
+    - zoomed in it uses `touch-action: none`, so a drag pans the image and a tap selects.
+  - **Double-tap (Inspect only)** toggles fit and 4×.
+  - **One finger, editing tools:** the tool works as with a mouse.
+    - A second finger rolls back a stroke already started and cancels a lasso or SAM drag.
+    - A touch Region fill applies on lift.
+    - The touch lasso is freehand drag only.
+    - The `− point` button (`sam-negative`) makes the next SAM taps negative.
+  - **Phone width (≤ 430 px):**
+    - no horizontal scroll; the filter bar wraps; the nav row stays on one line;
+    - work sub-groups stack in one column; tap targets are ≥ 36 px;
+    - Browse starts collapsed, with the nav row still in its header;
+    - the image height fits the width.
 - **History (`history.js`):** a per-frame stack of `{x, y, w, h, before, after}` patches, capped at 200. `Ctrl+Z` undoes and
   `Ctrl+Shift+Z` or `Ctrl+Y` redoes.
 - **Saving:**
@@ -265,7 +292,8 @@ Apply shows job progress.
 **Additional keys:** `G` toggles the pixel grid, `X` swaps the active and secondary class, `+`/`-` zoom, and `?` shows every shortcut.
 **Test hooks:** the `data-testid` attributes listed in `lab/tests/e2e/conftest.py` (v26.1.1 adds `nav-prev`,
 `nav-next`, `nav-pos` with `data-index` and `data-total`, `tag-ok|fix|drop|todo`, `group-<id>` with `data-collapsed`, and
-`group-toggle`; `tab-browse`, `carousel` and `frame-card` are gone), and `window.__lab` with `state()`,
+`group-toggle`; v26.1.2 adds `tool-inspect`, `sam-negative` and `selection-label`, `selection` in `state()`
+(`{id, px, bbox:[x0,y0,x1,y1] inclusive, label}` or null) and `clientToImg`; `tab-browse`, `carousel` and `frame-card` are gone), and `window.__lab` with `state()`,
 `imgToClient(x,y)` and `getPixel(x,y)`. Keep them stable, because the E2E suite depends on them.
 **Merge colour:** the colour chosen in the map builder only shows on the card swatch. An exported merged class takes its
 first member's colour, because the map format has no colour field.
@@ -311,7 +339,7 @@ first member's colour, because the map format has no colour field.
 
 ## 9. Versions and version-scoped content (`lab/VERSION`, `lab/versioning.py`)
 - Versions are `v<YY>.<major>.<minor>`, with the minor dropped when 0 in prose. `lab/VERSION` holds the current one; it is
-  `v26.1.1` for milestone **lab26.1** (mask correction, SAM2, taxonomy builder).
+  `v26.1.2` for milestone **lab26.1** (mask correction, SAM2, taxonomy builder).
 - Each milestone has its own branch (`lab26.1`). After it is squash-merged into `main`, the branch is deleted locally and
   remotely.
 - **At startup** `check_version` compares `lab/VERSION` with `<root>/lab/.lab-version`:
