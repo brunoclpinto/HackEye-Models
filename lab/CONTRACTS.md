@@ -1,28 +1,37 @@
-# Models Lab: plan and contract (v0.1.0)
+# Models Lab — contracts (v26.1.0, current rules)
 
-Status: **v0.1.0 built (2026-10-27).** Phase A (the taxonomy restructure, commit 7b32817) and Phase B (this contract) are done.
-35 unit tests and 10 E2E tests pass. Usage is in README.md. Deviations from the contract: the master yaml has no `nc`;
-`POST /api/exports` takes an optional `groups`; merge colours are not persisted; the identity map is `groups: {}`.
-The approved design is copied in "Design" below. Everything after it is the contract the workers build to. The workers
-are Sonnet; Opus reviews and integrates.
+The history, the user's decisions and the reasons behind each rule are in [`docs/DECISIONS.md`](docs/DECISIONS.md). The
+approved plans are in [`docs/plans/`](docs/plans/).
 
-## Design (approved 2026-10-27)
-The Models Lab is a web tool in this repo for HackEye datasets. With it the user:
-- browses and tags frames;
-- corrects masks with pixel accuracy (brush, region relabel, polygon/lasso, SAM2 click-to-outline, protect-source-class);
-- runs bulk class rules;
-- builds taxonomies: creates classes, splits a class into children, merges classes into a map, expands (ungroups) a merge,
-  and saves the map plus an exported dataset under a name the user types (e.g. `HackEye26.1.1-48`; the lab never auto-names).
+This file is the single source of truth that `lab/*.py`, `lab/sam/`, `lab/static/`, `datasets/common/` (as the lab
+uses it) and `datasets/hackeye/sync_lab_edits.py` are built against. It describes how things work **now**. Where the code
+and this text disagree, fix whichever is wrong in the same commit.
 
-The user works on a Mac with a mouse over Tailscale. Every one of the 124 classes and any custom class can be picked.
+**What the Models Lab is:** a web UI in HackEye-Models (reached over Tailscale) for HackEye datasets. With it you browse and
+tag frames, correct masks pixel by pixel (with SAM2 click-to-outline), run bulk class rules, and build taxonomies: create,
+split, merge and expand classes, save maps, and export them as new datasets.
 
-**Master dataset.** It is `/datasets/HackEye26.1-124`, and edits happen there.
-- Masks hold base ids: 0–123 are Vistas, 124–254 are custom classes, 255 is ignore.
-- `<root>/taxonomy.json` defines the base classes; Phase A's `datasets/common/taxonomy.py` reads and writes it.
-- Merge maps live in `taxonomies/*.yaml` and are views; masks never change because of a merge.
-- An export builds `/datasets/<name>/` (hardlinked images, LUT-remapped masks) through `datasets/common/dataset_merge.py`.
+**Contents:** 1 Data model · 2 Runtime and storage · 3 Database · 4 REST API · 5 SAM service · 6 Frontend ·
+7 Safety rules · 8 Testing · 9 Versions
 
-## Runtime
+---
+
+## 1. Data model
+- **Master dataset:** `LAB_DATASET`, by default `/datasets/HackEye26.1-124`. Masks hold **base ids**: 0–123 are Vistas,
+  124–254 are custom classes, 255 is ignore. Edits are written in place.
+- **Base taxonomy:** `<root>/taxonomy.json`, with the schema of `taxonomies/vistas124.json`:
+  `{id, name, raw_name, hier, color, void, parent}`. It is read and written through `common.taxonomy`.
+  - Every change keeps a `.bak` and regenerates the master yaml: names, `label_mapping` voids, path, train and val.
+  - The yaml has **no `nc`**, because ids can have gaps after a custom class is deleted.
+- **Merge maps:** `taxonomies/*.yaml` are views (merged name → member raw names, fnmatch globs). The reserved group
+  `__ignore__` maps its members to 255. Masks never change because of a map, so any merge can be expanded again.
+- **Exports:** `/datasets/<name>/`, built by `common.dataset_merge`. Images are hardlinked and masks LUT-remapped, with
+  `<name>.yaml` and a manifest. A per-class check requires each merged count to equal the sum of its members' counts, plus
+  ignore accounting. The **user types the name**, e.g. `HackEye26.1.1-48`; the lab never fills it in.
+- **Syncing to the dataset meta:** `datasets/hackeye/sync_lab_edits.py` writes the DB `classpix` into
+  `meta/classpix_<split>.csv`, then re-finalizes. Run it before training or a Drive copy.
+
+## 2. Runtime and storage
 - **`lab` compose service** (in `docker/compose.yaml`, built from `lab/Dockerfile` on `python:3.12-slim`):
   - deps from `lab/requirements.txt`: fastapi, uvicorn, numpy, opencv-python-headless, pillow, pyyaml, httpx, pytest;
   - runs as UID:GID with `restart: unless-stopped` on port `127.0.0.1:8766:8766`;
@@ -38,11 +47,12 @@ The user works on a Mac with a mouse over Tailscale. Every one of the 124 classe
     sam2 from git);
   - mounts `${MODELS_DIR:-../../../models}/sam2:/models:ro` and `/datasets` read-only;
   - is optional: the lab must work when it is down.
-- **Lab state:** `<root>/lab/` holds `lab.db` (SQLite, WAL), `orig/<split>/<stem>.png` (the first-save backups) and
-  `thumbs/<stem>.jpg`.
-- **Tailscale (done by Opus):** `tailscale serve --bg --https=8443 http://127.0.0.1:8766`.
+- **Lab state:** `<root>/lab/` holds `lab.db` (SQLite, WAL), `orig/<split>/<stem>.png` (the first-save backups),
+  `thumbs/<stem>.jpg` and `.lab-version` (§9).
+- **Import path:** `lab/__init__.py` puts `datasets/` on `sys.path`, and the shared code is imported as `common.*`.
+- **Tailscale:** `tailscale serve --bg --https=8443 http://127.0.0.1:8766` gives `https://megabeast.tail97a14.ts.net:8443/`.
 
-## Database (`lab/store.py`)
+## 3. Database (`lab/store.py`)
 ```
 frames_state(stem TEXT PRIMARY KEY, status TEXT NOT NULL DEFAULT 'todo',   -- todo|ok|fix|drop|edited
              note TEXT DEFAULT '', edited_at TEXT, edit_count INTEGER DEFAULT 0)
@@ -52,11 +62,15 @@ classpix(stem TEXT PRIMARY KEY, counts TEXT, updated_at TEXT)   -- "id:px;id:px"
 tax_log(id INTEGER PRIMARY KEY, at TEXT, action TEXT, payload TEXT)
 jobs(id TEXT PRIMARY KEY, kind TEXT, status TEXT, progress REAL, started TEXT, finished TEXT,
      params TEXT, result TEXT, log TEXT)   -- kind: export|rule|delete-class; status: running|done|failed
+versions(id INTEGER PRIMARY KEY, at TEXT, from_version TEXT, to_version TEXT, wiped TEXT)   -- §9
 ```
 A frame's status becomes `edited` on its first saved edit, unless the user has set `ok`, `fix` or `drop`. The user's tag
 wins; `edit_count` still increments.
 
-## API (JSON unless noted; errors are `HTTPException` with a `detail` string)
+**Revert** sets the status back to `todo`, resets `edit_count` to 0 and clears `edited_at`. The `edited=1` filter therefore
+means `edit_count > 0`. Rule applies and delete-with-remap jobs keep the existing statuses.
+
+## 4. REST API (`lab/server.py`, FastAPI; JSON unless noted; errors carry a `detail` string)
 **Meta**
 - `GET /api/meta` → `{version, dataset, root, counts:{train,val}, sam:{available, loaded}}`. The SAM health check has a 1 s
   timeout.
@@ -70,7 +84,7 @@ memory at startup.
   - `cmin`/`cmax` (conf_mean), `lmin`/`lmax` (lowconf_frac);
   - `cls` (base id) with `minpx` (default 2000);
   - `edited` (0/1);
-  - `sort`: `time` (clip, k), `conf`, `-conf`, `low` or `-edited`;
+  - `sort`: `time` (clip, k), `conf`, `-conf`, `low` (lowconf_frac, worst first) or `-edited`;
   - `offset`, `limit` (default 200, max 1000).
 
   Returns `{total, rows:[{stem, split, clip, t_sec, conf_mean, lowconf_frac, status, edit_count}]}`.
@@ -95,27 +109,30 @@ memory at startup.
 - `GET /api/taxonomy` → `{classes:[{id, name, raw_name, hier, color, void, parent, custom, frames, pixels}]}`, where `frames`
   counts frames with ≥2000 px.
 - `POST /api/taxonomy/classes` with `{name, hier, color:[r,g,b], parent?:id, raw_name?}`:
-  - The id is the next free one from 124 (409 when full).
+  - The id is the smallest free one from 124 (409 when full).
   - `raw_name` defaults to `hackeye--<hier>--<slug(name)>`. Names and raw names must be unique (409).
   - It saves the json (with `.bak`), regenerates the master yaml `names`/`nc` (the helper from Phase A) and logs to `tax_log`.
 - `POST /api/taxonomy/classes/{id}/split` with `{children:[{name, color}]}`: creates custom classes with `parent=id` and
   `hier=parent.hier`.
 - `PATCH /api/taxonomy/classes/{id}` with `{name?, color?, hier?}`: custom classes only (403 for base).
 - `DELETE /api/taxonomy/classes/{id}?remap_to=<id>`: custom only. It returns 409 when the class has pixels and no `remap_to`;
-  with `remap_to` it runs a rule job, then deletes. Returns `{deleted}` or `{job}`.
+  with `remap_to` (255 allowed) it runs a rule job, then deletes. Children of a deleted class inherit its parent. Returns `{deleted}` or `{job}`.
 
 **Maps** (`LAB_REPO/taxonomies/*.yaml`; the format is Phase A's `load_merge_map`/`save_merge_map`, extended by W1 with a
 reserved group key `__ignore__` whose members map to 255)
 - `GET /api/maps` → `[{name, n_classes}]`.
 - `GET /api/maps/{name}` → `{name, groups:{merged_name:[member raw names or globs]}}`.
 - `POST /api/maps/preview` with `{groups}` → `{n, classes:[{id, name, color, members:[base ids], void}], lut:[256 ints],
-  pixel_share:{merged_id: float}, unassigned:[base ids]}`. Unassigned classes keep their own class (the current convention).
+  pixel_share:{merged_id: float}, unassigned:[base ids]}`. Unassigned classes keep their own class. `groups: {}` is the
+  identity map (N = number of base classes).
 - `POST /api/maps` with `{name, groups, comment?, overwrite?:false}`: the name must match `^[A-Za-z0-9][A-Za-z0-9._-]*$`;
   409 if it exists. Writes `taxonomies/<name>.yaml`.
 
 **Exports**
-- `POST /api/exports` with `{name, map, splits?:["train","val"]}`: 409 if `LAB_DATASETS_ROOT/<name>` exists. Otherwise it saves
-  the map if it's new, then starts the job (`dataset_merge` in a thread or subprocess) and returns `{job}`.
+- `POST /api/exports` with `{name, map, groups?, splits?:["train","val"]}`: 409 if `LAB_DATASETS_ROOT/<name>` exists, or
+  if another export is running. When `map` doesn't exist yet, `groups` is saved as that map (404 without `groups`). The job
+  runs `common.dataset_merge` in a background thread with 4 worker processes and returns `{job}`. 409 details contain
+  "exists".
 - `GET /api/jobs/{id}` → the row, with the tail of its log.
 - `GET /api/jobs?kind=` → recent jobs.
 
@@ -131,7 +148,7 @@ reserved group key `__ignore__` whose members map to 255)
 - `predict` returns `{masks:[{score, png_b64}]}`. Each `png_b64` is an 8-bit 0/1 PNG of 1280×720, sorted by score; there are
   at most 3.
 
-## SAM service (`lab/sam/app.py`)
+## 5. SAM service (`lab/sam/app.py`)
 - `GET /health` → `{status, device, loaded, cached}`.
 - `POST /embed {stem, split}`: loads `/datasets/<dataset>/images/<split>/<stem>.jpg`; the dataset folder name comes from env
   `SAM_DATASET`, default `HackEye26.1-124`. It then runs `set_image` and caches the predictor features keyed by stem in an
@@ -140,8 +157,11 @@ reserved group key `__ignore__` whose members map to 255)
 - **Model:** `sam2.1_hiera_large.pt` with `configs/sam2.1/sam2.1_hiera_l.yaml`. It is loaded lazily on first use and unloaded
   (including `torch.cuda.empty_cache()`) after `SAM_IDLE_S` (default 600) seconds idle.
 - **Concurrency:** one request at a time (a lock).
+- **Image:** `hackeye-models-sam`, about 23 GB on disk. Its Dockerfile sets `USER`/`LOGNAME`/`HOME`, which sam2 needs.
+- **Measured (v26.1.0):** the first embed takes about 10.6 s because it loads the model; a warm embed about 260 ms; a
+  predict 13–16 ms after a one-off ~5 s warmup. VRAM is about 2 GB loaded and is released on idle unload.
 
-## Frontend (`lab/static/`, vanilla ES modules, no build step)
+## 6. Frontend (`lab/static/`, vanilla ES modules, no build step)
 **Files:**
 - `index.html`, `style.css` (copy the token block from `~/repos/HackEye/RnD/lab/static/style.css:1-13` and add the rest);
 - `app.js`: the router and tabs **Browse | Edit | Taxonomy | Rules**, URL hash state such as `#edit/<stem>?<filter>`, and a
@@ -214,9 +234,26 @@ reserved group key `__ignore__` whose members map to 255)
 
 **Rules:** from, to, filter, then Dry run, which shows counts and sample thumbnails; Apply shows job progress.
 
-## Tests
+**Additional keys:** `G` toggles the pixel grid, `X` swaps the active and secondary class, `+`/`-` zoom, and `?` shows every shortcut.
+**Test hooks:** the `data-testid` attributes listed in `lab/tests/e2e/conftest.py`, and `window.__lab` with `state()`,
+`imgToClient(x,y)` and `getPixel(x,y)`. Keep them stable, because the E2E suite depends on them.
+**Merge colour:** the colour chosen in the map builder only shows on the card swatch. An exported merged class takes its
+first member's colour, because the map format has no colour field.
+
+## 7. Safety rules
+- **Mask writes:** P-mode PNG, written atomically (tmp + os.replace) with the taxonomy palette. They are validated as
+  1280×720 with every id in the taxonomy or 255. An upload whose channels differ is rejected.
+- **Backups:** each frame's original is backed up once, to `orig/`, before its first change. Revert restores the backup and
+  deletes it.
+- **Locking:** one process-wide lock covers every write to masks, the taxonomy and the DB.
+- **Frame deletion:** `drop` is only a tag; deleting frames is an explicit step outside the UI (an `apply_curation.py`-style
+  keep list).
+- **Custom classes:** one with pixels can only be deleted with a remap target.
+- **Tests:** they never edit the master. E2E runs on a fixture copy in `/runs/lab-e2e/`.
+
+## 8. Testing
 **Unit (`lab/tests/`, pytest + `fastapi.testclient`):**
-- A `conftest.py` fixture generates a tiny synthetic master in `tmp_path`: 4 train and 2 val frames at 1280×720, random
+- A `conftest.py` fixture (with `labhelpers.py`) generates a tiny synthetic master in `tmp_path`: 4 train and 2 val frames at 1280×720, random
   blocks of classes, frames.csv, meta csvs, taxonomy.json (vistas124 plus nothing custom) and yaml. Point `LAB_DATASET` and
   `LAB_REPO` at it, with `taxonomies/` holding a small test map.
 - Cover: every endpoint's happy path and its 4xx cases, mask round-trip and palette, backup once and revert, recount and
@@ -242,14 +279,15 @@ reserved group key `__ignore__` whose members map to 255)
     and wait for the job: the export yaml exists and the count check passes;
   - a rules dry run of snow → water returns frames ≥ 3.
 
-## Worker split (Phase B, disjoint files)
-- **W1, backend:**
-  - `lab/server.py`, `store.py`, `masks.py`, `rules.py`, `taxonomy_api.py`, `export.py`, `lab/tests/` (unit) and
-    `lab/requirements.txt`;
-  - `datasets/hackeye/sync_lab_edits.py`, which writes DB `classpix` rows into `meta/classpix_<split>.csv`, then runs
-    finalize;
-  - the `__ignore__` extension in `datasets/common/taxonomy.py`.
-- **W2, frontend:** all of `lab/static/`.
-- **W3:** `lab/sam/` (Dockerfile, app.py), `lab/Dockerfile`, the `docker/compose.yaml` services `lab` and `sam`, and
-  `lab/tests/e2e/` (run.sh, conftest, make_fixture.py, tests).
-- **Every worker:** don't commit; no stray containers or files; report the files changed and the test output.
+## 9. Versions and version-scoped content (`lab/VERSION`, `lab/versioning.py`)
+- Versions are `v<YY>.<major>.<minor>`, with the minor dropped when 0 in prose. `lab/VERSION` holds the current one; it is
+  `v26.1.0` for milestone **lab26.1** (mask correction, SAM2, taxonomy builder).
+- Each milestone has its own branch (`lab26.1`). After it is squash-merged into `main`, the branch is deleted locally and
+  remotely.
+- **At startup** `check_version` compares `lab/VERSION` with `<root>/lab/.lab-version`:
+  - when the file is missing, it is written and nothing is wiped;
+  - on a change, **only regenerable lab state** is wiped: `<root>/lab/thumbs/` and the `jobs` rows. A `versions` row
+    records it.
+- **Never wiped:** masks, `orig/` backups, `frames_state` (tags, notes), `edits`, `classpix`, `tax_log`, `taxonomy.json`
+  and the yaml. These are the user's curation of the dataset, unlike the HackEye Lab's runs and reviews.
+- Jobs still `running` at startup are marked `failed` with "interrupted by restart".

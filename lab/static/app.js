@@ -55,7 +55,7 @@ async function route() {
 function renderMeta() {
   const m = S.meta;
   if (!m) { status.set("sam", "backend unreachable"); return; }
-  status.set("version", `v${m.version}`); status.set("dataset", m.dataset);
+  status.set("version", m.version.startsWith("v") ? m.version : `v${m.version}`); status.set("dataset", m.dataset);
   const sam = $("#sb-sam"), ok = !!m.sam?.available;
   sam.textContent = ok ? `SAM ready${m.sam.loaded ? " (loaded)" : ""}` : "SAM unavailable";
   sam.className = ok ? "ok" : "off"; sam.dataset.available = String(ok);

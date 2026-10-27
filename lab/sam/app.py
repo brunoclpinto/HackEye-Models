@@ -1,4 +1,4 @@
-"""SAM2 click/box segmentation service for the Models Lab (lab/PLAN.md, "SAM service").
+"""SAM2 click/box segmentation service for the Models Lab (lab/CONTRACTS.md, "SAM service").
 
 Lazy model load, LRU(8) of image embeddings keyed by stem, idle unload after SAM_IDLE_S, one request at a time.
 """

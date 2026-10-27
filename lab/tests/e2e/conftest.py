@@ -1,4 +1,4 @@
-"""Fixtures for the Models Lab browser tests (lab/PLAN.md, "Tests -> E2E").
+"""Fixtures for the Models Lab browser tests (lab/CONTRACTS.md §8).
 
 Run through run.sh: a throwaway lab on a 20-frame fixture (3 frames with nature snow, id 62; both splits).
 

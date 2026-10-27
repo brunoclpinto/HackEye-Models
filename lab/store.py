@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS classpix(stem TEXT PRIMARY KEY, counts TEXT, updated_
 CREATE TABLE IF NOT EXISTS tax_log(id INTEGER PRIMARY KEY, at TEXT, action TEXT, payload TEXT);
 CREATE TABLE IF NOT EXISTS jobs(id TEXT PRIMARY KEY, kind TEXT, status TEXT, progress REAL, started TEXT, finished TEXT,
     params TEXT, result TEXT, log TEXT);
+CREATE TABLE IF NOT EXISTS versions(id INTEGER PRIMARY KEY, at TEXT, from_version TEXT, to_version TEXT, wiped TEXT);
 """
 
 
@@ -104,8 +105,6 @@ class Store:
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.executescript(SCHEMA)
-        self.db.execute("UPDATE jobs SET status='failed', finished=? WHERE status='running'", (now(),))
-        self.db.commit()
         self.tax_path = self.root / "taxonomy.json"
         self.tax = load_taxonomy_json(self.tax_path)
         self._load_frames()

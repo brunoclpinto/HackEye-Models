@@ -35,7 +35,9 @@ each was trained and evaluated.
 `lab/` is a web tool for HackEye datasets: browse and tag frames, correct masks pixel by pixel (SAM2
 click-to-outline included), run bulk class rules, and build taxonomies (create, split, merge and expand classes, save a
 merge map and export it as a new dataset). It runs as the compose services `lab` and `sam` and is served at
-`https://megabeast.tail97a14.ts.net:8443/`. See **[lab/README.md](lab/README.md)**.
+`https://megabeast.tail97a14.ts.net:8443/`. Versioned like the HackEye Lab (`lab/VERSION`, currently v26.1.0, milestone
+branch `lab26.1`); see **[lab/README.md](lab/README.md)**, [lab/CONTRACTS.md](lab/CONTRACTS.md) and
+[lab/docs/DECISIONS.md](lab/docs/DECISIONS.md).
 
 ## Taxonomies
 

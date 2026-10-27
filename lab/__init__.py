@@ -3,7 +3,10 @@
 import sys
 from pathlib import Path
 
-__version__ = "0.1.0"
+try:
+    __version__ = (Path(__file__).resolve().parent / "VERSION").read_text().strip() or "unknown"
+except OSError:
+    __version__ = "unknown"
 
 # The shared dataset code (datasets/common/*) is imported as top-level `common.*`, the way
 # dataset_merge.py and pseudo_label.py import it. It is located relative to this package, not

@@ -2,8 +2,9 @@
 
 A web tool for HackEye datasets. It lets you browse and tag frames, correct masks pixel by pixel (with SAM2
 click-to-outline), run bulk class rules, and build taxonomies: create, split, merge and expand classes, then save a merge
-map and export it as a new dataset. The design and the API contract are in [PLAN.md](PLAN.md). The version is in
-`lab/__init__.py` (0.1.0).
+map and export it as a new dataset. The current rules (API, data model, safety) are in [CONTRACTS.md](CONTRACTS.md), the history in
+[docs/DECISIONS.md](docs/DECISIONS.md), and the approved plans plus the milestone status in [docs/plans/](docs/plans/).
+The version is in `lab/VERSION` (v26.1.0, milestone **lab26.1**, developed on branch `lab26.1`).
 
 **Open it at `https://megabeast.tail97a14.ts.net:8443/`** (tailnet only). That address is `tailscale serve --https=8443`
 pointing at `127.0.0.1:8766`.
@@ -71,7 +72,7 @@ docker compose run --rm --entrypoint python lab -m pytest lab/tests datasets/com
 `run.sh` copies 20 real frames to `/runs/lab-e2e/` and runs a throwaway lab on port 8767, so the master never receives
 test edits. It cleans up after itself.
 
-## Known limits (v0.1.0)
+## Known limits (v26.1.0)
 
 - A colour chosen when merging is shown only in the builder. An exported class takes the colour of its first (largest)
   member, as in `HackEye26.1-48.yaml`.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Browser E2E tests for the Models Lab (lab/PLAN.md, "Tests").
+# Browser E2E tests for the Models Lab (lab/CONTRACTS.md §8).
 #
 #   lab/tests/e2e/run.sh                 # all tests
 #   lab/tests/e2e/run.sh -k editor -x    # extra args go to pytest

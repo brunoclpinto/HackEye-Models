@@ -1,4 +1,4 @@
-"""Models Lab backend (FastAPI). See lab/PLAN.md for the contract."""
+"""Models Lab backend (FastAPI). See lab/CONTRACTS.md for the contract."""
 
 from __future__ import annotations
 
@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import __version__, export, masks, rules, taxonomy_api
+from .versioning import check_version
 from .store import SORTS, STATUSES, ApiError, FrameFilter, Store
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -145,7 +146,8 @@ def create_app(config: Config | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(_app):
         try:
-            await run_in_threadpool(get_store)  # preload so the first request is fast
+            store = await run_in_threadpool(get_store)  # preload so the first request is fast
+            await run_in_threadpool(check_version, store, __version__)
         except Exception:  # noqa: BLE001 -- the app still serves; requests answer 503
             pass
         yield

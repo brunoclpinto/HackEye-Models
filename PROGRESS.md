@@ -63,7 +63,7 @@ training; then 300-500 labeled production frames for a fine-tune, oversampled
 class the 544 fine-tune lost). Only real portrait footage can test the extra
 near-ground field of view; the sky-padded simulation can't.
 
-## Models Lab v0.1.0 (2026-10-27)
+## Models Lab v26.1.0 (2026-10-27, branch `lab26.1`)
 
 `lab/` is a web tool for browsing, tagging and pixel-correcting HackEye26.1-124 masks (brush, region relabel, polygon/lasso,
 SAM2 click-to-outline, protect source class). It also does bulk class rules and taxonomy building: create, split, merge
