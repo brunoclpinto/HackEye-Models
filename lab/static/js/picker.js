@@ -6,8 +6,9 @@ import { S, on } from "./store.js";
 import { makeGroup, setCollapsed, stored } from "./groups.js";
 
 export class Picker {
-  constructor(host, protHost, onChange, extraHost = null) {
-    this.host = host; this.protHost = protHost; this.extraHost = extraHost; this.onChange = onChange;
+  constructor(host, protHost, onChange, extraHost = null, onDetection = null) {
+    this.host = host; this.protHost = protHost; this.extraHost = extraHost; this.onChange = onChange; this.onDetection = onDetection;
+    this.dets = null; this.detSel = null; this.detAll = false;
     this.active = null; this.secondary = 0; this.protect = -1;
     this.recents = [];
     try { this.recents = JSON.parse(localStorage.getItem("lab.recents") || "[]"); } catch { /* ignore */ }
@@ -22,7 +23,8 @@ export class Picker {
     if (!S.byId.has(this.secondary)) this.secondary = tax[0].id;
     this.recents = this.recents.filter((id) => S.byId.has(id)).slice(0, 9);
 
-    this.curBox = el("div", { class: "pk-cur", "data-testid": "active-class", hidden: true }, this.curSw = el("span", { class: "sw big" }), this.curName = el("b"));
+    this.curBox = el("div", { class: "pk-cur", "data-testid": "active-class", hidden: true }, this.curSw = el("span", { class: "sw big" }), this.curName = el("b"),
+      el("button", { class: "pk-x", type: "button", "data-testid": "active-class-clear", title: "Clear the selected class (Esc)", "aria-label": "Clear the selected class", onclick: () => this.setActive(null) }, "\u00d7"));
     this.secSw = el("span", { class: "sw" }); this.secName = el("span", { class: "muted" });
     this.search = el("input", { "data-testid": "picker-search", type: "search", placeholder: "Search classes (/)", autocomplete: "off" });
     this.search.addEventListener("input", debounce(() => this.filter(), 60));
@@ -60,12 +62,13 @@ export class Picker {
     }
     this.host.replaceChildren(
       el("div", { class: "pk-head" }, this.search, this.curBox),
+      this.detEl = el("div", { class: "pk-dets", "data-testid": "detections", hidden: true }),
       el("div", { class: "pk-lists" }, this.det.root, this.undet.root));
     this.protHost.replaceChildren(el("label", { class: "muted" }, "Only change pixels of ", this.protSel));
     this.extraHost?.replaceChildren(
       el("span", { class: "pk-cur", title: "Secondary class for the Erase tool (right-click a chip, X swaps)" }, el("span", { class: "muted" }, "Erase to"), this.secSw, this.secName),
       this.recentsEl);
-    this.refresh(); this.partition();
+    this.refresh(); this.partition(); this.renderDets();
   }
   /** counts: {id: {items, px}} for the classes present in the frame (null = nothing known yet). */
   setCounts(counts) { this.counts = counts; this.partition(); }
@@ -104,6 +107,27 @@ export class Picker {
     const dIds = [...this.items.keys()].filter((id) => counts[id]);
     this.det.root.hidden = !!q && !vis(dIds);
     this.undet.root.hidden = !!q && ![...this.groups.values()].some((g) => !g.hidden);
+  }
+  /** list: [{k, px, bbox, seed}] of the selected class (null = no class selected); selK = k of the Inspect selection or null. */
+  setDetections(list, selK) {
+    if (list !== this.dets) this.detAll = false;
+    this.dets = list; this.detSel = selK; this.renderDets();
+  }
+  renderDets() {
+    const box = this.detEl, list = this.dets;
+    if (!box) return;
+    box.hidden = !list;
+    if (!list) { box.replaceChildren(); return; }
+    const LIM = 60, shown = this.detAll ? list : list.slice(0, LIM);
+    const kids = [el("b", { class: "muted" }, `Detections (${list.length})`)];
+    if (!list.length) kids.push(el("span", { class: "muted", "data-testid": "detections-empty" }, "0 detections in this frame"));
+    for (const d of shown) {
+      kids.push(el("button", { class: "pk-det" + (d.k === this.detSel ? " act" : ""), type: "button", "data-testid": "detection-item", dataset: { k: d.k },
+        title: `Select detection #${d.k} and centre on it`, onclick: () => this.onDetection?.(d) }, `#${d.k} ${d.px} px`));
+    }
+    if (list.length > LIM) kids.push(el("button", { class: "pk-det more", type: "button", "data-testid": "detections-more", onclick: () => { this.detAll = !this.detAll; this.renderDets(); } },
+      this.detAll ? "less" : `+${list.length - LIM} more`));
+    box.replaceChildren(...kids);
   }
   focusSearch() { this.search?.focus(); this.search?.select(); }
   refresh() {

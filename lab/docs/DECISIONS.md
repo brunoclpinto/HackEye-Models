@@ -250,3 +250,52 @@ has had 28 tests since v26.1.0.
   their hier groups stay collapsed (they are by default).
 - Not yet seen on a real iPhone (same as v26.1.2).
 - Plan: [`plans/v26.1.3.md`](plans/v26.1.3.md).
+
+---
+
+## v26.1.4 — scroll-view pan, clear the class, selected-class-only mask, numbered detections
+**Prompt (2026-10-29, "go for it").** "i can zoom the image but not drag it into position, it should behave like a mobile
+phone scrollview where i can zoom and drag image around to focus on specific locations; should be able to unselect
+selected class; when no class is selected show all masks otherwise just the selected class mask; below selected class
+should show numbered list of detections for fine-selection." Follow-up before shipping: "keep zoom on mouse wheel, move
+image with ctrl+mouse down".
+
+**Cause (Opus):** with a mouse or trackpad an Inspect press selected at once and a drag did nothing; panning needed
+Space-drag or a middle-drag, which nothing on screen hinted at. Touch already panned when zoomed.
+
+**Decisions:**
+- **Pan:** Ctrl/Cmd + left drag in any tool (the user's choice), plus a plain drag in Inspect when zoomed, selecting on
+  release instead of on press. The wheel keeps zooming (the first plan had a plain scroll pan; the user reverted that).
+  Touch pans glide after lift (fling), like a phone scroll view. Double-click toggles fit and 4× as double-tap does.
+- **Clear the class:** an `×` on the selected-class box, plus page `Esc` after any pending lasso / SAM / selection.
+- **Mask:** a selected class shows only its own pixels, so its detections stand out; no class shows all.
+- **Detections:** numbered by size, largest first (the numbers stay stable while viewing, and the big ones come first);
+  the same numbers are tagged on the image so the list and the picture match. Clicking one selects and zooms to it
+  (bbox ≈ half the view, fit..8×). More than 60 fold behind `+N more` instead of scrolling (no inline scroll, v26.1.3).
+
+**Implementation (Sonnet worker):** `counts.js` `classRegions()` adds per-region `{k, px, bbox, seed}` to the same single
+pass; `editor.js` unifies mouse, pen and touch Inspect on the tap/drag path, adds the Ctrl-pan, fling, class filter in
+`paintRect`, tags and `selectDetection`; `picker.js` adds `×` and the Detections row. Worker choices: mouse double-click
+reuses the double-tap timing (320 ms, 30 px) instead of `dblclick`, so it never fires twice; selecting a detection also
+scrolls the image into view (helps on phones where the chips are below it).
+
+**Opus review (screenshots, live lab, read-only):** desktop, `flat sidewalk` on `Chest-center-0001_000000`: only the
+sidewalk mask, tags 1–9 on the image, chips `#1 139759 px` … `#9 1 px`, `×` next to the name. Clicking `#2` (298 px)
+zoomed to 8× and outlined it beside the parked car. iPhone 390 px: the Detections row wraps under the class.
+
+**Opus review fix:** a pinch moves the view through zoom, and the first fling measured that as pan velocity, so lifting a
+pinch could fling the image to the pan limit (it showed as an intermittent failure of the two-finger pan test). The
+two-finger fling now follows the finger midpoint and is skipped when the zoom changed in the last 80 ms; new test
+`test_pinch_leaves_no_fling`.
+
+**Result:** 28 unit tests and 46 E2E tests pass, three full runs in a row (new `test_view.py`: Inspect drag pans and doesn't select, click selects
+on release, the wheel zooms with the cursor point fixed, Ctrl-drag with Brush pans and paints nothing, double-click
+fit/4×, touch fling glides then stops and a new press stops it; `test_classes.py`: `×` and the `Esc` order, the
+selected-class-only mask via `maskPixel`, detections equal `cv2.connectedComponentsWithStats(connectivity=4)` sorted by
+size and `#1` selects the largest inside the view, the absent class and `+N more`).
+
+**Known / possible issues:**
+- On macOS, Ctrl+click is a secondary click; the canvas suppresses the context menu, but a system-wide setting that
+  remaps Ctrl+click could still interfere. Cmd+drag does the same as a fallback.
+- A tag can sit under the Inspect label of a selected neighbour (the label is drawn on top).
+- Plan: [`plans/v26.1.4.md`](plans/v26.1.4.md).

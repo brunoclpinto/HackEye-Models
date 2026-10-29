@@ -5,7 +5,7 @@ import { S, clsName, clsColor, samAvailable, loadMeta } from "./store.js";
 import { Painter } from "./tools.js";
 import { History } from "./history.js";
 import { Picker } from "./picker.js";
-import { classCounts } from "./counts.js";
+import { classRegions } from "./counts.js";
 import { SamSession } from "./sam.js";
 import { hashFor } from "./nav.js";
 
@@ -19,7 +19,7 @@ const E = {
   cursor: null, drag: null, space: false, poly: null,
   used: new Set(), loadSeq: 0, saving: null,
   viewMapName: "", viewLut: identity(), lut32: new Uint32Array(256),
-  cache: new Map(),
+  cache: new Map(), regions: {}, detections: null, lastActive: null, fling: 0,
 };
 function identity() { const a = new Uint8Array(256); for (let i = 0; i < 256; i++) a[i] = i; return a; }
 
@@ -29,7 +29,11 @@ let imgCtx, maskCtx, maskImg, mask32, canvas, ctx, picker, sam, raf = 0, strokeR
 // ---------------------------------------------------------------- init
 export function init() {
   canvas = $("#eCanvas"); ctx = canvas.getContext("2d", { alpha: false });
-  picker = new Picker($("#ePicker"), $("#eProtect"), () => { painter.protect = picker.protect; syncUI(); redraw(); }, $("#ePickerExtra"));
+  picker = new Picker($("#ePicker"), $("#eProtect"), () => {
+    painter.protect = picker.protect;
+    if (picker.active !== E.lastActive) { E.lastActive = picker.active; paintRect(0, 0, E.W, E.H); updateDetections(); }     // selected-class-only mask
+    syncUI(); redraw();
+  }, $("#ePickerExtra"), selectDetection);
   sam = new SamSession(() => { syncUI(); redraw(); });
   new ResizeObserver(() => onResize()).observe($("#eStage"));
   bindToolbar(); bindCanvas();
@@ -37,10 +41,11 @@ export function init() {
   window.addEventListener("beforeunload", (e) => { if (history.dirty) { e.preventDefault(); e.returnValue = ""; } });
 }
 window.__lab = {
-  state: () => ({ stem: E.stem, zoom: E.z, tool: E.tool, cls: picker?.active ?? null, classCounts: E.classCounts, classCountMs: E.classCountMs, dirty: history.dirty, samCandidates: sam ? sam.cands.length : 0,
+  state: () => ({ stem: E.stem, zoom: E.z, vx: E.vx, vy: E.vy, detections: E.detections, tool: E.tool, cls: picker?.active ?? null, classCounts: E.classCounts, classCountMs: E.classCountMs, dirty: history.dirty, samCandidates: sam ? sam.cands.length : 0,
     selection: E.sel ? { id: E.sel.id, px: E.sel.n, bbox: [...E.sel.bbox], label: selText(), contours: E.sel.contours.length, edgeLen: E.sel.edgeLen } : null }),
   imgToClient: (x, y) => { const r = canvas.getBoundingClientRect(); return { x: r.left + E.vx + (x + 0.5) * E.z, y: r.top + E.vy + (y + 0.5) * E.z }; },
   clientToImg: (cx, cy) => { const r = canvas.getBoundingClientRect(), fx = (cx - r.left - E.vx) / E.z, fy = (cy - r.top - E.vy) / E.z; return { x: Math.floor(fx), y: Math.floor(fy), fx, fy }; },
+  maskPixel: (x, y) => { if (!mask32 || x < 0 || y < 0 || x >= E.W || y >= E.H) return undefined; const v = mask32[y * E.W + x]; return [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, v >>> 24]; },
   getPixel: (x, y) => (E.grid ? E.grid[y * E.W + x] : undefined),
 };
 export const currentStem = () => E.stem;
@@ -57,15 +62,21 @@ function buildLut() {
 }
 function paintRect(rx, ry, rw, rh) {
   if (!E.grid) return;
-  const { W, H, grid } = E, vl = E.viewLut, lut = E.lut32;
-  if (E.outline) { rx--; ry--; rw++; rh++; }
+  const { W, H, grid } = E, vl = E.viewLut, lut = E.lut32, act = picker && picker.active != null ? picker.active : -1;
+  if (E.outline) { rx--; ry--; rw += 2; rh += 2; }
   const x0 = Math.max(0, rx), y0 = Math.max(0, ry), x1 = Math.min(W, rx + rw), y1 = Math.min(H, ry + rh);
   if (x1 <= x0 || y1 <= y0) return;
   for (let y = y0; y < y1; y++) {
     let i = y * W + x0;
     for (let x = x0; x < x1; x++, i++) {
-      const d = vl[grid[i]];
-      if (E.outline) {
+      const g = grid[i], d = vl[g];
+      if (act >= 0) {                                          // a class is selected: only its pixels are coloured
+        if (g !== act) { mask32[i] = 0; continue; }
+        if (E.outline) {
+          const e = (x > 0 && vl[grid[i - 1]] !== d) || (x < W - 1 && vl[grid[i + 1]] !== d) || (y > 0 && vl[grid[i - W]] !== d) || (y < H - 1 && vl[grid[i + W]] !== d);
+          mask32[i] = e ? lut[d] : 0;
+        } else mask32[i] = lut[d];
+      } else if (E.outline) {
         const r = x < W - 1 && vl[grid[i + 1]] !== d, b = y < H - 1 && vl[grid[i + W]] !== d;
         mask32[i] = r || b ? lut[d] : 0;
       } else mask32[i] = lut[d];
@@ -88,6 +99,7 @@ function onResize() {
 }
 export const onShow = () => requestAnimationFrame(onResize);
 function fit() {
+  stopFling();
   E.fitZ = Math.min(E.cw / E.W, E.ch / E.H);
   E.z = E.fitZ; E.vx = (E.cw - E.W * E.z) / 2; E.vy = (E.ch - E.H * E.z) / 2; E.fitted = true; redraw(); syncStatus();
 }
@@ -96,10 +108,84 @@ function clampPan() {
   E.vx = clamp(E.vx, m - E.W * E.z, E.cw - m); E.vy = clamp(E.vy, m - E.H * E.z, E.ch - m);
 }
 function zoomAt(sx, sy, nz) {
+  stopFling();
   nz = clamp(nz, E.fitZ, MAXZ);
   const k = nz / E.z;
   E.vx = sx - (sx - E.vx) * k; E.vy = sy - (sy - E.vy) * k; E.z = nz; E.fitted = Math.abs(nz - E.fitZ) < 1e-6;
   clampPan(); redraw(); syncStatus();
+}
+// Fling: velocity of the last ~80 ms of a touch pan, then a rAF decay (x0.95 per 60 fps frame) after lift.
+function sampleV(h, x = E.vx, y = E.vy) {
+  const t = performance.now(); h.push({ t, x, y, z: E.z });
+  while (h.length > 1 && t - h[0].t > 80) h.shift();
+}
+function velocityOf(h) {            // px per ms, or null when the finger had stopped
+  if (!h || h.length < 2 || performance.now() - h[h.length - 1].t > 80) return null;
+  const a = h[0], b = h[h.length - 1], dt = Math.max(b.t - a.t, 8);
+  if (Math.abs(b.z / a.z - 1) > 0.02) return null;                // still pinching at lift: zoom moved the view, no fling
+  return { x: (b.x - a.x) / dt, y: (b.y - a.y) / dt };
+}
+function stopFling() { if (E.fling) { cancelAnimationFrame(E.fling); E.fling = 0; } }
+function startFling(v) {
+  stopFling();
+  if (!v) return;
+  let vx = v.x * 16.667, vy = v.y * 16.667, last = performance.now();
+  if (Math.hypot(vx, vy) < 0.05) return;
+  const step = (now) => {
+    const f = clamp((now - last) / 16.667, 0.25, 4); last = now;
+    const k = Math.pow(0.95, f), px = E.vx, py = E.vy;
+    vx *= k; vy *= k;
+    E.vx += vx * f; E.vy += vy * f; clampPan();
+    if (Math.abs(E.vx - px) < 1e-6) vx = 0;                       // the pan limit stopped this axis
+    if (Math.abs(E.vy - py) < 1e-6) vy = 0;
+    E.fitted = false; redraw(); syncStatus();
+    if (Math.hypot(vx, vy) < 0.05) { E.fling = 0; return; }
+    E.fling = requestAnimationFrame(step);
+  };
+  E.fling = requestAnimationFrame(step);
+}
+
+// ---------------------------------------------------------------- detections (numbered regions of the selected class)
+/** Push the selected class's regions (and which one Inspect has selected) to the picker; called on class / sel / recount changes. */
+function updateDetections() {
+  const a = picker.active, list = a == null ? null : (E.regions[a] || []);
+  E.detections = list;
+  let selK = null;
+  if (list && E.sel && E.sel.id === a) { for (const d of list) if (E.sel.mask[d.seed[1] * E.W + d.seed[0]]) { selK = d.k; break; } }
+  picker.setDetections(list, selK);
+  redraw();
+}
+/** A chip was clicked: select that region and centre it, zooming so its bbox fills about half the view (fit..8x). */
+function selectDetection(d) {
+  if (!E.grid) return;
+  stopFling();
+  setSel(painter.select(d.seed[0], d.seed[1]));
+  const [x0, y0, x1, y1] = d.bbox, w = x1 - x0 + 1, h = y1 - y0 + 1;
+  const target = Math.min(E.cw * 0.5 / w, E.ch * 0.5 / h), nz = Math.max(E.z, clamp(target, E.fitZ, 8));
+  E.z = nz; E.fitted = Math.abs(nz - E.fitZ) < 1e-6;
+  E.vx = E.cw / 2 - (x0 + x1 + 1) / 2 * nz; E.vy = E.ch / 2 - (y0 + y1 + 1) / 2 * nz;
+  clampPan(); redraw(); syncStatus();
+  canvas.scrollIntoView({ block: "nearest" });
+}
+/** Small numbered tags at the label point (first pixel in scan order) of each detection of the selected class. */
+function drawTags(sx, sy) {
+  const list = E.detections;
+  if (!list || !list.length) return;
+  const col = clsColor(picker.active), css = rgbCss(col), lum = (0.299 * col[0] + 0.587 * col[1] + 0.114 * col[2]) / 255;
+  ctx.save(); ctx.font = "600 11px system-ui, sans-serif"; ctx.textBaseline = "middle";
+  const n = Math.min(60, list.length), th = 14;
+  for (let i = 0; i < n; i++) {
+    const d = list[i], [x0, y0, x1, y1] = d.bbox;
+    if (Math.max(x1 - x0 + 1, y1 - y0 + 1) * E.z < 3) continue;
+    const X = sx(d.seed[0]), Y = sy(d.seed[1]);
+    if (X < 0 || Y < 0 || X > E.cw || Y > E.ch) continue;
+    const t = String(d.k), tw = ctx.measureText(t).width + 8;
+    const lx = Math.min(Math.max(0, X), Math.max(0, E.cw - tw)), ly = Math.min(Math.max(0, Y), Math.max(0, E.ch - th));
+    ctx.fillStyle = css; ctx.fillRect(lx, ly, tw, th);
+    ctx.strokeStyle = "rgba(0,0,0,.65)"; ctx.lineWidth = 1; ctx.strokeRect(lx + 0.5, ly + 0.5, tw - 1, th - 1);
+    ctx.fillStyle = lum > 0.55 ? "#111" : "#fff"; ctx.fillText(t, lx + 4, ly + th / 2 + 0.5);
+  }
+  ctx.restore();
 }
 let hatchTmp = null, hatchPat = { key: "", pat: null };
 /** Hatched highlight of the active SAM candidate, in screen space so stripes keep their size at any zoom. */
@@ -147,7 +233,7 @@ function setSel(r) {
     const cx = E.selCanvas.getContext("2d"), img = cx.createImageData(E.W, E.H);
     new Uint32Array(img.data.buffer).set(u); cx.putImageData(img, 0, 0);
   }
-  syncSel(); redraw();
+  syncSel(); updateDetections(); redraw();
 }
 const clearSel = () => { if (E.sel) setSel(null); };
 function syncSel() {
@@ -208,6 +294,7 @@ function draw() {
     ctx.stroke();
   }
   ctx.strokeStyle = "rgba(255,255,255,.4)"; ctx.lineWidth = 1; ctx.strokeRect(sx(0) - 0.5, sy(0) - 0.5, E.W * z + 1, E.H * z + 1);
+  if (E.detections) drawTags(sx, sy);
   if (E.sel) drawSel(sx, sy);
   const ta = E.tool === "inspect" && E.fitted ? "pan-y" : "none";   // fit + Inspect: the page scrolls natively on touch
   if (canvas.style.touchAction !== ta) canvas.style.touchAction = ta;
@@ -285,6 +372,7 @@ function startGesture() {
   const [a, b] = [...touches.values()], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
   E.gesture = { d0: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)), z0: E.z, fx0: (mx - E.vx) / E.z, fy0: (my - E.vy) / E.z };
   canvas.classList.add("panning");
+  E.gesture.hist = [];
 }
 /** Pinch zoom around the midpoint + two-finger pan: the image point that was under the start midpoint follows the midpoint. */
 function applyGesture() {
@@ -292,11 +380,12 @@ function applyGesture() {
   const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, d = Math.hypot(a.x - b.x, a.y - b.y);
   E.z = clamp(g.z0 * d / g.d0, E.fitZ, MAXZ);
   E.vx = mx - g.fx0 * E.z; E.vy = my - g.fy0 * E.z;
-  E.fitted = Math.abs(E.z - E.fitZ) < 1e-6; clampPan(); redraw(); syncStatus();
+  E.fitted = Math.abs(E.z - E.fitZ) < 1e-6; clampPan(); sampleV(g.hist, mx, my); redraw(); syncStatus();   // fling follows the finger midpoint
 }
 
 function onDown(e) {
   if (!E.grid) return;
+  stopFling();
   try { canvas.setPointerCapture(e.pointerId); } catch { /* synthetic / released pointer */ }
   e.preventDefault();
   const p = ptr(e), touch = e.pointerType === "touch";
@@ -305,12 +394,12 @@ function onDown(e) {
     if (touches.size >= 2) { if (!E.gesture) startGesture(); return; }
     if (E.gesture) return;
   }
-  if (e.button === 1 || (e.button === 0 && E.space)) { E.drag = { pan: true, sx: p.sx, sy: p.sy, vx: E.vx, vy: E.vy }; canvas.classList.add("panning"); return; }
+  const ctrlPan = e.button === 0 && !touch && (e.ctrlKey || e.metaKey);          // Ctrl/Cmd + left drag pans in any tool
+  if (e.button === 1 || ctrlPan || (e.button === 0 && E.space)) { E.drag = { pan: true, sx: p.sx, sy: p.sy, vx: E.vx, vy: E.vy }; canvas.classList.add("panning"); return; }
   if (E.tool === "inspect") {
     if (e.button !== 0) return;
     if (e.altKey && inside(p)) { altPick(e, p); return; }
-    if (touch) E.drag = { kind: "tap", sx: p.sx, sy: p.sy, vx: E.vx, vy: E.vy, moved: false };
-    else if (inside(p)) setSel(painter.select(p.px, p.py));
+    E.drag = { kind: "tap", sx: p.sx, sy: p.sy, vx: E.vx, vy: E.vy, moved: false, touch, hist: [] };   // select on release; a drag pans
     return;
   }
   if (!inside(p) && E.tool !== "sam" && E.tool !== "polygon") return;
@@ -354,8 +443,10 @@ function handleMove(e) {
   const d = E.drag;
   if (d?.pan) { E.vx = d.vx + (p.sx - d.sx); E.vy = d.vy + (p.sy - d.sy); clampPan(); E.fitted = false; redraw(); syncStatus(); }
   else if (d?.kind === "tap") {
-    if (!d.moved && Math.hypot(p.sx - d.sx, p.sy - d.sy) > 8) d.moved = true;
-    if (d.moved && !d.region && !E.fitted) { E.vx = d.vx + (p.sx - d.sx); E.vy = d.vy + (p.sy - d.sy); clampPan(); redraw(); syncStatus(); }   // zoomed Inspect: drag pans
+    if (!d.moved && Math.hypot(p.sx - d.sx, p.sy - d.sy) > 6) d.moved = true;
+    if (d.moved && !d.region && !E.fitted) {                     // zoomed Inspect: drag pans (mouse, pen, touch)
+      E.vx = d.vx + (p.sx - d.sx); E.vy = d.vy + (p.sy - d.sy); clampPan(); sampleV(d.hist); canvas.classList.add("panning"); redraw(); syncStatus();
+    }
   }
   else if (d?.kind === "stroke") { painter.line(d.lx, d.ly, p.px, p.py, E.size, E.round, d.c); d.lx = p.px; d.ly = p.py; }
   else if (d?.kind === "poly") {
@@ -377,7 +468,7 @@ function onUp(e) {
   const cancel = e.type === "pointercancel";
   if (e.pointerType === "touch") {
     touches.delete(e.pointerId);
-    if (E.gesture) { if (!touches.size) { E.gesture = null; canvas.classList.remove("panning"); } return; }
+    if (E.gesture) { if (!touches.size) { const v = cancel ? null : velocityOf(E.gesture.hist); E.gesture = null; canvas.classList.remove("panning"); startFling(v); } return; }
   }
   const d = E.drag;
   try { canvas.releasePointerCapture(e.pointerId); } catch { /* not captured */ }
@@ -385,14 +476,14 @@ function onUp(e) {
   E.drag = null; canvas.classList.remove("panning");
   if (d.kind === "stroke") { if (cancel) rollback(); else endEdit(E.tool === "erase" ? "brush" : E.tool); }
   else if (d.kind === "poly" && d.free) { if (cancel) E.poly = null; else closePoly(); }
-  else if (d.kind === "tap") { if (!cancel && !d.moved) tap(d); }
+  else if (d.kind === "tap") { if (cancel) { /* nothing */ } else if (!d.moved) tap(d); else if (d.touch && !d.region) startFling(velocityOf(d.hist)); }
   else if (d.kind === "sam") {
     if (d.box) sam.setBox(...d.box);
     else sam.addPoint(d.fx, d.fy, d.btn === 0 && !E.samNeg);
   }
   redraw();
 }
-/** A finished one-finger tap: select (Inspect, double-tap toggles fit/4x) or apply the Region fill. */
+/** A finished click / tap: select (Inspect, double-click / double-tap toggles fit/4x) or apply the Region fill. */
 function tap(d) {
   const fx = (d.sx - E.vx) / E.z, fy = (d.sy - E.vy) / E.z, px = Math.floor(fx), py = Math.floor(fy);
   if (d.region) {
@@ -458,9 +549,11 @@ function needClass() {
 function recount() {
   if (!E.grid) return;
   const t0 = performance.now();
-  E.classCounts = classCounts(E.grid, E.W, E.H);
+  const r = classRegions(E.grid, E.W, E.H);
+  E.classCounts = r.counts; E.regions = r.regions;
   E.classCountMs = Math.round((performance.now() - t0) * 10) / 10;
   picker.setCounts(E.classCounts);
+  updateDetections();
 }
 function undoRedo(redo) {
   clearSel();
@@ -504,6 +597,7 @@ export async function show(stem, qs = "", { discard = false } = {}) {
     if (!(await save())) { if (!(await confirmDialog("Saving failed. Discard unsaved edits?", "Discard"))) { window.history.replaceState(null, "", hashFor(E.stem, undefined, E.qs)); return; } }
   }
   const seq = ++E.loadSeq;
+  stopFling();
   $("#eLoading").hidden = false;
   try {
     if (discard) E.cache.delete(stem);
@@ -724,7 +818,12 @@ export function onKey(e) {
     case "/": picker.focusSearch(); return true;
     case "tab": if (E.tool === "sam") { sam.cycle(e.shiftKey ? -1 : 1); return true; } return false;
     case "enter": if (E.tool === "inspect" && E.sel && !E.locked) { relabelSel(); return true; } if (E.tool === "polygon" && E.poly) { closePoly(); return true; } if (E.tool === "sam" && sam.has) { applySam(); return true; } return false;
-    case "escape": if (E.sel) { clearSel(); return true; } if (E.poly) { E.poly = null; redraw(); return true; } if (E.tool === "sam") { sam.reset(); return true; } return false;
+    case "escape":
+      if (E.poly) { E.poly = null; redraw(); return true; }
+      if (E.tool === "sam" && (sam.has || sam.points.length || sam.box)) { sam.reset(); return true; }
+      if (E.sel) { clearSel(); return true; }
+      if (picker.active != null && !/^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || "")) { picker.setActive(null); return true; }
+      return false;
   }
   return false;
 }

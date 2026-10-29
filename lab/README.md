@@ -35,6 +35,8 @@ collapses from its header, groups never scroll on their own (the page scrolls), 
 **Classes (Edit):** search, then the selected class (shown only once you pick one; click it again to clear). Below,
 **Detected** lists the classes in the open frame with their number of detections (separate regions), most first, and
 **Undetected** holds the rest by category. The lists update after every edit. Painting tools need a class picked.
+With a class selected the image shows **only that class's mask**, and a numbered **Detections** row (`#1 <px> px`, largest
+first, same numbers tagged on the image) sits under it: click one to select it and zoom to it. `×` clears the class.
 
 1. **Browse (top).** Filter by split, clip, status, confidence, class present or edited. Step with `←`/`→` (or `N`/`P`);
    Next on the last frame goes back to the first, and Prev on the first goes to the last. Tag with `Shift+1` ok, `Shift+2` fix, `Shift+3` drop, `Shift+4` todo, or the buttons.
@@ -59,9 +61,11 @@ collapses from its header, groups never scroll on their own (the page scrolls), 
 | Keys | Action |
 |---|---|
 | `V` | Inspect (the default tool): click or tap an item to outline its boundary (holes included) with a label (class · id · px); `Esc` clears, `Enter` relabels it to the active class |
+| `Esc` (page) | cancel the lasso / SAM prompt, else clear the Inspect selection, else clear the selected class |
 | `B` / `E` / `R` / `L` / `S` | brush / erase to secondary class / region relabel (Shift: whole class) / polygon-lasso / SAM |
 | `[` `]`, `Q`, `X` | brush size, round or square, swap active and secondary class |
-| wheel, Space-drag or middle-drag, `F`, `0`, `+` `-` | zoom to the cursor (up to 32×), pan, fit, 1:1, zoom |
+| wheel, Ctrl/Cmd+drag (also Space-drag, middle-drag), `F`, `0`, `+` `-` | zoom to the cursor (up to 32×), pan in any tool, fit, 1:1, zoom |
+| Inspect: drag, double-click; touch: drag, pinch, double-tap | pan when zoomed (touch keeps gliding after a swipe), toggle fit and 4× |
 | `M`, `O`, `G` | mask on/off, outline only, pixel grid (from 8×) |
 | `1`–`9`, `/`, Alt+click, Shift+Alt+click | recent classes, search classes, eyedropper, set the protect class |
 | SAM: click, right-click, drag, `Tab`, `Enter`, `Esc` | positive point, negative point, box, next candidate, apply, clear |
@@ -91,7 +95,7 @@ test edits. It cleans up after itself.
   the next taps negative.
 - **On a phone,** Browse starts collapsed, but Prev/Next and the tags stay in its header.
 
-## Known limits (v26.1.3)
+## Known limits (v26.1.4)
 
 - Touch was tested with Chromium and WebKit emulation (synthetic multi-touch), not yet on a real iPhone.
 - On a 900 px high screen the tab's groups start below the fold. Use the recents (`1`–`9`) or collapse or shrink the

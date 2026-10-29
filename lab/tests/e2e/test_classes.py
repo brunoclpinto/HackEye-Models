@@ -1,7 +1,8 @@
-"""v26.1.3: no Work group, no inline vertical scroll, Detected / Undetected classes with counts, class only when picked."""
+"""v26.1.4 (end of file): clear the class, selected-class-only mask, numbered detections.
+v26.1.3: no Work group, no inline vertical scroll, Detected / Undetected classes with counts, class only when picked."""
 import cv2
 import numpy as np
-from conftest import SNOW, api, click_pixel, find_pixel, mask_array, open_editor, pick_class, pixel, state, tid, to_client
+from conftest import SNOW, W, H, api, click_pixel, find_pixel, mask_array, open_editor, pick_class, pixel, put_mask, state, tid, to_client
 
 
 def expected(stem):
@@ -138,4 +139,135 @@ def test_no_inline_vertical_scroll(page, clean_frame):
     assert no_vertical_scrollbars(page) == []
     # the whole table is laid out, not clipped
     assert page.evaluate("document.querySelector('#tTable').scrollHeight <= document.querySelector('#tTable').clientHeight + 1")
+    assert not page.errors
+
+
+def mask_px(page, x, y):
+    return page.evaluate("([x, y]) => window.__lab.maskPixel(x, y)", [x, y])
+
+
+def class_color(cid):
+    return next(c["color"] for c in api("/api/taxonomy")["classes"] if c["id"] == cid)
+
+
+def components(arr, cid):
+    """[(px, [x0, y0, x1, y1])] of the 4-connected regions of class cid, largest first."""
+    n, _, st, _ = cv2.connectedComponentsWithStats((arr == cid).astype(np.uint8), connectivity=4)
+    out = [(int(st[i, 4]), [int(st[i, 0]), int(st[i, 1]), int(st[i, 0] + st[i, 2] - 1), int(st[i, 1] + st[i, 3] - 1)]) for i in range(1, n)]
+    return sorted(out, key=lambda t: -t[0])
+
+
+def test_clear_button_and_page_escape(page, clean_frame):
+    open_editor(page, clean_frame())
+    ac = page.locator(tid("active-class"))
+    pick_class(page, SNOW)
+    assert ac.is_visible()
+    page.click(tid("active-class-clear"))
+    assert not ac.is_visible() and state(page)["cls"] is None
+    pick_class(page, SNOW)
+    page.keyboard.press("Escape")                            # focus is not in an input, nothing pending: Esc clears the class
+    assert state(page)["cls"] is None and not ac.is_visible()
+    # Esc order: the Inspect selection first, then the class
+    pick_class(page, SNOW)
+    x, y, _ = find_pixel(mask_array(state(page)["stem"]))
+    click_pixel(page, x, y)
+    assert state(page)["selection"] is not None
+    page.keyboard.press("Escape")
+    assert state(page)["selection"] is None and state(page)["cls"] == SNOW
+    page.keyboard.press("Escape")
+    assert state(page)["cls"] is None
+    assert not page.errors
+
+
+def test_selected_class_only_mask(page, clean_frame):
+    stem = clean_frame()
+    arr = mask_array(stem)
+    ids, cnt = np.unique(arr, return_counts=True)
+    a = int(ids[cnt.argmax()])
+    ys, xs = np.nonzero(arr == a); xa, ya = int(xs[len(xs) // 2]), int(ys[len(ys) // 2])
+    ys, xs = np.nonzero(arr != a); xb, yb = int(xs[len(xs) // 2]), int(ys[len(ys) // 2])
+    open_editor(page, stem)
+    assert mask_px(page, xa, ya)[3] == 255 and mask_px(page, xb, yb)[3] == 255     # no class: every class is shown
+    pick_class(page, a)
+    assert mask_px(page, xb, yb) == [0, 0, 0, 0]
+    assert mask_px(page, xa, ya) == [*class_color(a), 255]
+    page.keyboard.press("o")                                  # outline mode outlines only that class
+    assert mask_px(page, xb, yb) == [0, 0, 0, 0]
+    page.keyboard.press("o")
+    assert mask_px(page, xa, ya) == [*class_color(a), 255]
+    page.click(tid("active-class-clear"))
+    assert mask_px(page, xb, yb)[3] == 255 and mask_px(page, xa, ya)[3] == 255
+    assert not page.errors
+
+
+def test_detections_match_connected_components(page, clean_frame):
+    stem = clean_frame()
+    arr = mask_array(stem)
+    ids, cnt = np.unique(arr, return_counts=True)
+    cid = int(ids[cnt.argmax()])
+    comps = components(arr, cid)
+    open_editor(page, stem)
+    det = page.locator(tid("detections"))
+    assert not det.is_visible()
+    pick_class(page, cid)
+    assert det.is_visible()
+    st = state(page)["detections"]
+    assert [d["px"] for d in st] == [c[0] for c in comps] and [d["k"] for d in st] == list(range(1, len(comps) + 1))
+    for d, (px, bbox) in zip(st, comps):
+        if sum(1 for c in comps if c[0] == px) == 1:
+            assert d["bbox"] == bbox
+        assert arr[d["seed"][1], d["seed"][0]] == cid
+    chips = page.locator(tid("detection-item"))
+    shown = min(60, len(comps))
+    assert chips.count() == shown
+    for i in range(shown):
+        assert chips.nth(i).get_attribute("data-k") == str(i + 1) and chips.nth(i).inner_text() == f"#{i + 1} {comps[i][0]} px"
+    assert f"Detections ({len(comps)})" in det.inner_text()
+    # chip #1: selects the largest region, centred and inside the view
+    chips.first.click()
+    sel = state(page)["selection"]
+    assert sel["px"] == comps[0][0] and sel["id"] == cid
+    assert "act" in chips.first.get_attribute("class")
+    cb = page.locator(tid("editor-canvas")).bounding_box()
+    x0, y0, x1, y1 = sel["bbox"]
+    a, b = to_client(page, x0 - 0.5, y0 - 0.5), to_client(page, x1 + 0.5, y1 + 0.5)
+    assert a["x"] >= cb["x"] - 1 and a["y"] >= cb["y"] - 1 and b["x"] <= cb["x"] + cb["width"] + 1 and b["y"] <= cb["y"] + cb["height"] + 1, (a, b, cb)
+    # a region picked on the image highlights its own chip
+    if len(comps) > 1:
+        px2, bb2 = comps[1]
+        k = 2
+        page.locator(tid("detection-item")).nth(1).click()
+        assert state(page)["selection"]["px"] == px2
+        assert "act" in page.locator(tid("detection-item")).nth(1).get_attribute("class") and "act" not in chips.first.get_attribute("class")
+    page.keyboard.press("Escape")
+    assert state(page)["selection"] is None and page.locator(f'{tid("detection-item")}.act').count() == 0
+    page.keyboard.press("Escape")
+    assert not det.is_visible() and state(page)["detections"] is None
+    assert not page.errors
+
+
+def test_detections_absent_class_and_more_button(page, clean_frame):
+    stem = clean_frame()
+    arr = np.zeros((H, W), np.uint8)
+    arr[:] = 1
+    for i in range(70):                                       # 70 separate 3x3 snow regions of different sizes
+        y, x = 20 + (i // 14) * 40, 20 + (i % 14) * 80
+        arr[y:y + 3 + i % 4, x:x + 3] = SNOW
+    put_mask(stem, arr)
+    open_editor(page, stem)
+    absent = next(c["id"] for c in api("/api/taxonomy")["classes"] if c["id"] not in (1, SNOW))
+    pick_class(page, absent)
+    assert page.locator(tid("detections")).inner_text().count("0 detections in this frame") == 1
+    assert page.locator(tid("detection-item")).count() == 0
+    pick_class(page, SNOW)
+    chips = page.locator(tid("detection-item"))
+    assert chips.count() == 60
+    more = page.locator(tid("detections-more"))
+    assert more.inner_text() == "+10 more"
+    more.click()
+    assert chips.count() == 70 and more.inner_text() == "less"
+    more.click()
+    assert chips.count() == 60
+    px = [int(t.split()[1]) for t in chips.all_inner_texts()]
+    assert px == sorted(px, reverse=True)
     assert not page.errors

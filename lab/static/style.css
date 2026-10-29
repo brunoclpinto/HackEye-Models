@@ -175,6 +175,15 @@ pre.log { margin: 4px 0; padding: 6px; background: var(--bg); border-radius: 5px
 #eCanvas { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
 #bTags, .seg { flex: none; }
 .pos { white-space: nowrap; }
+/* ---- v26.1.4: clear-class button, numbered detections ---- */
+.pk-x { padding: 0 8px; line-height: 1; min-height: 24px; font-size: 16px; }
+.pk-dets { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; margin-bottom: 8px; }
+.pk-det { padding: 1px 8px; min-height: 0; border-radius: 13px; font-size: 12px; line-height: 20px; font-variant-numeric: tabular-nums; }
+.pk-det.act { background: color-mix(in srgb, var(--accent) 30%, var(--panel)); border-color: var(--accent); }
+@media (pointer: coarse), (max-width: 600px) {
+  .pk-x { min-width: 36px; }
+  .pk-det { padding: 5px 10px; line-height: 20px; }
+}
 @media (pointer: coarse), (max-width: 600px) {
   button, select, input:not([type=checkbox]):not([type=range]) { min-height: 36px; }
   .pk-item { padding: 5px 10px 5px 8px; }

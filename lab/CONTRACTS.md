@@ -1,4 +1,4 @@
-# Models Lab — contracts (v26.1.3, current rules)
+# Models Lab — contracts (v26.1.4, current rules)
 
 The history, the user's decisions and the reasons behind each rule are in [`docs/DECISIONS.md`](docs/DECISIONS.md). The
 approved plans are in [`docs/plans/`](docs/plans/).
@@ -210,7 +210,11 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
   - The grid is a `Uint8Array(1280*720)`, decoded from the mask PNG through a canvas red channel (`overlay.js:236-250`).
   - Updates are dirty-rect only.
 - **View controls:**
-  - Wheel zooms to the cursor, from fit to 32×. Space-drag or middle-drag pans. `F` fits, `1:1` (`0`) shows actual pixels.
+  - Wheel zooms to the cursor, from fit to 32×. **Ctrl/Cmd + left drag pans in any tool** (ahead of the tool action),
+    as do Space-drag and middle-drag. In Inspect a plain drag (> 6 px) pans when zoomed and a click selects on release
+    (mouse, pen and touch alike); double-click / double-tap toggles fit and 4×. `F` fits, `1:1` (`0`) shows actual pixels.
+  - **Selected-class mask:** with no class selected every class is coloured; with one selected only its base-id pixels
+    are (the rest transparent), and outline mode outlines only that class. Full repaint on class change.
   - A pixel grid appears from 8×.
   - `M` toggles the mask and `O` switches to outline mode, which draws a pixel wherever the class differs from the
     right or bottom neighbour. An opacity slider sits in the toolbar.
@@ -219,7 +223,15 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
   - **Head:** the search box (`/` focuses it and opens the matching groups), then the active class (swatch and
     `<name> (<id>)`, `active-class`) **only while a class is selected**. Nothing else sits there.
   - **No class is active on load.** A chip click, a recents button, a digit `1`–`9`, `X` or `Alt+click` (eyedropper)
-    selects one; clicking the active chip again, or `Esc` in the empty search box, clears it.
+    selects one; the `×` in the active-class box (`active-class-clear`), clicking the active chip again, `Esc` in the
+    empty search box, or page `Esc` clears it. Page `Esc` order: cancel the lasso / SAM prompt, else clear the Inspect
+    selection, else clear the class.
+  - **Detections** (`detections`, only while a class is selected, below the head): chips `#k <px> px`
+    (`detection-item`, `data-k`) numbered 1..n by size (largest first, ties by scan order); the first 60, then
+    `+N more` / `less`; "0 detections in this frame" when absent. The same numbers are drawn on the image as small tags
+    at each region's first pixel in scan order (first 60; skipped under 3 screen px). Clicking a chip selects that region
+    (as an Inspect click) and centres it, zooming its bbox to about half the view (fit..8×, never zooming out). The chip
+    of the current Inspect selection is highlighted. Data: `counts.js` `classRegions()` (same single pass).
   - **Two side-by-side sub-groups** (stacked at phone width), both collapsible:
     - **Detected** (`edit-detected`): classes with pixels in the open frame, flat, sorted by detections (most first, ties by
       name). Each chip reads `<swatch> <name> <count>`, the count muted mono like the merge card's "N classes".
@@ -265,6 +277,8 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
     - at fit zoom the canvas uses `touch-action: pan-y`, so the page scrolls natively and a tap selects;
     - zoomed in it uses `touch-action: none`, so a drag pans the image and a tap selects.
   - **Double-tap (Inspect only)** toggles fit and 4×.
+  - **Fling:** a one-finger Inspect pan or a two-finger pan keeps gliding after lift (×0.95 per 60 fps frame, stops
+    under 0.05 px/frame or at the pan limit); any pointer down, zoom, fit or frame change stops it.
   - **One finger, editing tools:** the tool works as with a mouse.
     - A second finger rolls back a stroke already started and cancels a lasso or SAM drag.
     - A touch Region fill applies on lift.
@@ -310,7 +324,9 @@ Apply shows job progress.
 `nav-next`, `nav-pos` with `data-index` and `data-total`, `tag-ok|fix|drop|todo`, `group-<id>` with `data-collapsed`, and
 `group-toggle`; v26.1.2 adds `tool-inspect`, `sam-negative` and `selection-label`, `selection` in `state()`
 (`{id, px, bbox:[x0,y0,x1,y1] inclusive, label, contours, edgeLen}` or null) and `clientToImg`; v26.1.3 adds
-`classCounts` (`{<id>: {items, px}}` for detected classes) and `classCountMs` to `state()`, `cls` is null with no class,
+`classCounts` (`{<id>: {items, px}}` for detected classes) and `classCountMs` to `state()` (v26.1.4 adds `vx`, `vy`,
+`detections` = `[{k, px, bbox, seed:[x,y]}]` or null, `active-class-clear`, `detections`, `detection-item`, and
+`__lab.maskPixel(x,y)` → RGBA of the mask layer), `cls` is null with no class,
 and groups `edit-detected` / `edit-undetected`; `group-work` is gone; `tab-browse`, `carousel` and `frame-card` are gone), and `window.__lab` with `state()`,
 `imgToClient(x,y)` and `getPixel(x,y)`. Keep them stable, because the E2E suite depends on them.
 **Merge colour:** the colour chosen in the map builder only shows on the card swatch. An exported merged class takes its
