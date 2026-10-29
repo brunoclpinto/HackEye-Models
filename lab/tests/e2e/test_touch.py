@@ -91,7 +91,9 @@ def test_one_finger_drag_pans_when_zoomed_and_tap_selects(touch_page, frames):
     fire(touch_page, "pointerdown", 3, mx, my)
     for i in range(1, 7):
         fire(touch_page, "pointermove", 3, mx + 8 * i, my + 4 * i)
+    touch_page.wait_for_timeout(120)                           # the finger rests before lifting: no fling (v26.1.4)
     fire(touch_page, "pointerup", 3, mx + 48, my + 24)
+    touch_page.wait_for_timeout(100)
     b = screen_of(touch_page, 640, 360)
     assert abs((b["x"] - a["x"]) - 48) <= 1.5 and abs((b["y"] - a["y"]) - 24) <= 1.5, (a, b)
     assert state(touch_page)["selection"] is None              # a drag is not a tap

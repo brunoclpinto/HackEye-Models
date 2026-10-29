@@ -102,6 +102,13 @@
             <button id="eOutline" title="Outline mode (O)">Outline</button>
             <button id="eGrid" title="Pixel grid (G), shown from 8x">Grid</button>
             <label>View map <select id="eMap"><option value="">none</option></select></label>
+            <span class="vc">
+              <label title="Display-only colour of the target class (selected class, else Inspect selection)">Colour <input id="eViewColor" data-testid="view-color" type="color" value="#808080"></label>
+              <button id="eViewColorReset" data-testid="view-color-reset" type="button" title="Restore this class's colour">Reset</button>
+              <button id="eViewColorResetAll" data-testid="view-color-reset-all" type="button" title="Remove all view colours" hidden>Reset all</button>
+              <small id="eViewColorHint" class="muted" data-testid="view-color-hint"></small>
+            </span>
+            <label title="Label size (px)">Labels <input id="eLabelSize" data-testid="label-size" type="range" min="10" max="32" step="1" value="13"> <span id="eLabelSizeVal" class="mono">13</span></label>
             <button id="eFit" title="Fit (F)">Fit</button>
             <button id="e11" title="Actual pixels (0)">1:1</button>
           </div>

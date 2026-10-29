@@ -299,3 +299,38 @@ size and `#1` selects the largest inside the view, the absent class and `+N more
   remaps Ctrl+click could still interfere. Cmd+drag does the same as a fallback.
 - A tag can sit under the Inspect label of a selected neighbour (the label is drawn on top).
 - Plan: [`plans/v26.1.4.md`](plans/v26.1.4.md).
+
+---
+
+## v26.1.5 — view colour for contrast, label size
+**Prompt (2026-10-29, "go for it").** After asking how to change a class colour (only custom classes can be edited in
+the Taxonomy tab): "the class colour can stay fixed but i need to change it while editing for contrast purposes allow me
+to do so in view group. in view group add a label size slidder, i need bigger labels sometimes as well."
+
+**Decisions (Opus):**
+- **Display-only override, per viewer:** the colour lives in the browser (`localStorage`), never in `taxonomy.json`, so
+  the class colour stays fixed for maps, exports and the app, as the user asked. It survives reloads because contrast
+  needs are usually per class (a magenta sidewalk on pink paving), not per frame.
+- **Target:** the selected class, else the class of the Inspect selection, so it works in both workflows.
+- **Everything the editor draws** for that class follows it (mask, outlines, labels, tags, swatches), so the chips still
+  match the image.
+- **Label size:** 10–32 px for the Inspect label; detection tags scale at 0.85× so they stay smaller than the label.
+
+**Implementation (Sonnet worker):** `store.js` holds the overrides (`viewColor`, `setViewColor`, a `viewcolors` event);
+`editor.js` routes every drawing colour through it and rebuilds the LUT on change; `picker.js` swatches follow it. Opus
+grouped the colour controls so `Reset` doesn't wrap away from the picker.
+
+**Opus review (screenshot, live lab, read-only):** `flat sidewalk` set to #00ff66 with labels at 26 px: detection #2
+zoomed to 8× with a large green label, green tags and green chip swatches; the Taxonomy colour unchanged.
+
+**Test fix:** `test_one_finger_drag_pans_when_zoomed_and_tap_selects` failed now and then since v26.1.4, because the
+fling could move the view between the lift and the check. The test now rests the finger 120 ms before lifting (no fling
+by design), which also covers that rule.
+
+**Result:** 28 unit tests and 49 E2E tests pass, five full runs in a row (new `test_view_style.py`: the mask pixel and swatch change while
+`/api/taxonomy` doesn't, reload keeps it, Reset restores it, the target follows the Inspect selection and the control is
+disabled with neither, the label grows from 13 to 26 px and persists).
+
+**Known / possible issues:**
+- The override is per browser: the iPhone and the Mac keep separate colours.
+- Plan: [`plans/v26.1.5.md`](plans/v26.1.5.md).

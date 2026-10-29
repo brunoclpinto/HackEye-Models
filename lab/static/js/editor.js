@@ -1,7 +1,7 @@
 // Mask editor: offscreen image + mask layers, one visible canvas (setTransform, no smoothing), rAF-batched redraws.
 import { api } from "./api.js";
 import { $, $$, el, toast, clamp, status, rgbCss, confirmDialog, debounce } from "./util.js";
-import { S, clsName, clsColor, samAvailable, loadMeta } from "./store.js";
+import { S, clsName, viewColor, hasViewColor, setViewColor, resetViewColors, VC, on, samAvailable, loadMeta } from "./store.js";
 import { Painter } from "./tools.js";
 import { History } from "./history.js";
 import { Picker } from "./picker.js";
@@ -17,7 +17,7 @@ const E = {
   tool: "inspect", sel: null, selCanvas: null, samNeg: false, locked: false, saveTool: "inspect", gesture: null, lastTap: null, size: 8, round: true, showMask: true, outline: false, showGrid: true, opacity: 0.55,
   z: 1, vx: 0, vy: 0, fitZ: 1, fitted: true, cw: 0, ch: 0, dpr: 1,
   cursor: null, drag: null, space: false, poly: null,
-  used: new Set(), loadSeq: 0, saving: null,
+  used: new Set(), labelSize: 13, labelBox: null, loadSeq: 0, saving: null,
   viewMapName: "", viewLut: identity(), lut32: new Uint32Array(256),
   cache: new Map(), regions: {}, detections: null, lastActive: null, fling: 0,
 };
@@ -41,7 +41,7 @@ export function init() {
   window.addEventListener("beforeunload", (e) => { if (history.dirty) { e.preventDefault(); e.returnValue = ""; } });
 }
 window.__lab = {
-  state: () => ({ stem: E.stem, zoom: E.z, vx: E.vx, vy: E.vy, detections: E.detections, tool: E.tool, cls: picker?.active ?? null, classCounts: E.classCounts, classCountMs: E.classCountMs, dirty: history.dirty, samCandidates: sam ? sam.cands.length : 0,
+  state: () => ({ stem: E.stem, zoom: E.z, vx: E.vx, vy: E.vy, detections: E.detections, tool: E.tool, cls: picker?.active ?? null, classCounts: E.classCounts, classCountMs: E.classCountMs, dirty: history.dirty, labelSize: E.labelSize, labelBox: E.labelBox, samCandidates: sam ? sam.cands.length : 0,
     selection: E.sel ? { id: E.sel.id, px: E.sel.n, bbox: [...E.sel.bbox], label: selText(), contours: E.sel.contours.length, edgeLen: E.sel.edgeLen } : null }),
   imgToClient: (x, y) => { const r = canvas.getBoundingClientRect(); return { x: r.left + E.vx + (x + 0.5) * E.z, y: r.top + E.vy + (y + 0.5) * E.z }; },
   clientToImg: (cx, cy) => { const r = canvas.getBoundingClientRect(), fx = (cx - r.left - E.vx) / E.z, fy = (cy - r.top - E.vy) / E.z; return { x: Math.floor(fx), y: Math.floor(fy), fx, fy }; },
@@ -58,7 +58,7 @@ function buildLut() {
   const put = (id, c) => { l[id] = (255 << 24 | c[2] << 16 | c[1] << 8 | c[0]) >>> 0; };
   for (let i = 0; i < 256; i++) put(i, [70, 70, 70]);
   if (E.viewMap) { for (const c of E.viewMap.classes) put(c.id, c.void ? [60, 60, 60] : c.color); }
-  else { for (const c of S.tax) put(c.id, c.color); put(255, [60, 60, 60]); }
+  else { for (const c of S.tax) put(c.id, viewColor(c.id)); put(255, [60, 60, 60]); }
 }
 function paintRect(rx, ry, rw, rh) {
   if (!E.grid) return;
@@ -171,19 +171,19 @@ function selectDetection(d) {
 function drawTags(sx, sy) {
   const list = E.detections;
   if (!list || !list.length) return;
-  const col = clsColor(picker.active), css = rgbCss(col), lum = (0.299 * col[0] + 0.587 * col[1] + 0.114 * col[2]) / 255;
-  ctx.save(); ctx.font = "600 11px system-ui, sans-serif"; ctx.textBaseline = "middle";
-  const n = Math.min(60, list.length), th = 14;
+  const col = viewColor(picker.active), css = rgbCss(col), lum = (0.299 * col[0] + 0.587 * col[1] + 0.114 * col[2]) / 255;
+  ctx.save(); const fs = Math.round(E.labelSize * 0.85); ctx.font = `600 ${fs}px system-ui, sans-serif`; ctx.textBaseline = "middle";
+  const n = Math.min(60, list.length), th = Math.round(fs * 14 / 11), tp = Math.round(fs * 4 / 11);
   for (let i = 0; i < n; i++) {
     const d = list[i], [x0, y0, x1, y1] = d.bbox;
     if (Math.max(x1 - x0 + 1, y1 - y0 + 1) * E.z < 3) continue;
     const X = sx(d.seed[0]), Y = sy(d.seed[1]);
     if (X < 0 || Y < 0 || X > E.cw || Y > E.ch) continue;
-    const t = String(d.k), tw = ctx.measureText(t).width + 8;
+    const t = String(d.k), tw = ctx.measureText(t).width + tp * 2;
     const lx = Math.min(Math.max(0, X), Math.max(0, E.cw - tw)), ly = Math.min(Math.max(0, Y), Math.max(0, E.ch - th));
     ctx.fillStyle = css; ctx.fillRect(lx, ly, tw, th);
     ctx.strokeStyle = "rgba(0,0,0,.65)"; ctx.lineWidth = 1; ctx.strokeRect(lx + 0.5, ly + 0.5, tw - 1, th - 1);
-    ctx.fillStyle = lum > 0.55 ? "#111" : "#fff"; ctx.fillText(t, lx + 4, ly + th / 2 + 0.5);
+    ctx.fillStyle = lum > 0.55 ? "#111" : "#fff"; ctx.fillText(t, lx + tp, ly + th / 2 + 0.5);
   }
   ctx.restore();
 }
@@ -194,7 +194,7 @@ function drawHatch() {
   if (!m) return;
   if (!hatchTmp) hatchTmp = document.createElement("canvas");
   if (hatchTmp.width !== canvas.width || hatchTmp.height !== canvas.height) { hatchTmp.width = canvas.width; hatchTmp.height = canvas.height; }
-  const t = hatchTmp.getContext("2d"), { dpr, z, vx, vy } = E, rgb = clsColor(picker.active);
+  const t = hatchTmp.getContext("2d"), { dpr, z, vx, vy } = E, rgb = viewColor(picker.active);
   t.globalCompositeOperation = "source-over"; t.setTransform(1, 0, 0, 1, 0, 0); t.clearRect(0, 0, hatchTmp.width, hatchTmp.height);
   t.setTransform(z * dpr, 0, 0, z * dpr, vx * dpr, vy * dpr); t.imageSmoothingEnabled = false; t.drawImage(m, 0, 0);
   t.setTransform(1, 0, 0, 1, 0, 0); t.globalCompositeOperation = "source-in";
@@ -215,7 +215,7 @@ function drawHatch() {
 function selColor() {
   const id = E.sel.id;
   if (E.viewMap) { const m = E.viewMap.classes.find((c) => c.id === E.viewLut[id]); if (m) return m.void ? [90, 90, 90] : m.color; }
-  return clsColor(id);
+  return viewColor(id);
 }
 function selText() {
   if (!E.sel) return "";
@@ -233,7 +233,7 @@ function setSel(r) {
     const cx = E.selCanvas.getContext("2d"), img = cx.createImageData(E.W, E.H);
     new Uint32Array(img.data.buffer).set(u); cx.putImageData(img, 0, 0);
   }
-  syncSel(); updateDetections(); redraw();
+  syncSel(); syncViewColor(); updateDetections(); redraw();
 }
 const clearSel = () => { if (E.sel) setSel(null); };
 function syncSel() {
@@ -256,13 +256,13 @@ function drawSel(sx, sy) {
   ctx.lineWidth = 5; ctx.strokeStyle = "rgba(0,0,0,.6)"; ctx.stroke();
   ctx.lineWidth = 3; ctx.strokeStyle = css; ctx.stroke();
   const text = selText();
-  ctx.font = "600 13px system-ui, sans-serif"; ctx.textBaseline = "middle";
-  const pad = 4, th = 18, tw = ctx.measureText(text).width + pad * 2;
+  ctx.font = `600 ${E.labelSize}px system-ui, sans-serif`; ctx.textBaseline = "middle";
+  const pad = Math.round(E.labelSize * 4 / 13), th = Math.round(E.labelSize * 18 / 13), tw = ctx.measureText(text).width + pad * 2;
   const lx = Math.min(Math.max(0, X - 1.5), Math.max(0, E.cw - tw));
   let ly = Y - th - 1.5;
   if (ly < 0) ly = Y + 1.5;                                 // no room above: label inside the contour extent
   ly = Math.min(ly, Math.max(0, E.ch - th));
-  ctx.fillStyle = css; ctx.fillRect(lx, ly, tw, th);
+  ctx.fillStyle = css; ctx.fillRect(lx, ly, tw, th); E.labelBox = { w: tw, h: th };
   const lum = (0.299 * col[0] + 0.587 * col[1] + 0.114 * col[2]) / 255;
   ctx.fillStyle = lum > 0.55 ? "#111" : "#fff"; ctx.fillText(text, lx + pad, ly + th / 2 + 0.5);
   ctx.restore();
@@ -300,7 +300,7 @@ function draw() {
   if (canvas.style.touchAction !== ta) canvas.style.touchAction = ta;
   // polygon in progress
   if (E.poly && E.poly.length) {
-    const pts = E.poly, col = clsColor(picker.active);
+    const pts = E.poly, col = viewColor(picker.active);
     ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(sx(p[0]), sy(p[1])) : ctx.moveTo(sx(p[0]), sy(p[1]))));
     if (E.cursor && !E.drag) ctx.lineTo(sx(E.cursor.fx), sy(E.cursor.fy));
     ctx.fillStyle = rgbCss(col, 0.22); ctx.fill("evenodd");
@@ -739,6 +739,20 @@ function bindToolbar() {
   $("#eOutline").addEventListener("click", () => { E.outline = !E.outline; syncUI(); paintRect(0, 0, E.W, E.H); });
   $("#eGrid").addEventListener("click", () => { E.showGrid = !E.showGrid; syncUI(); redraw(); });
   $("#eMap").addEventListener("change", (e) => setViewMap(e.target.value));
+  $("#eViewColor").addEventListener("input", (e) => {
+    const id = targetCls(); if (id == null) return;
+    const h = e.target.value; setViewColor(id, [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)));
+  });
+  $("#eViewColorReset").addEventListener("click", () => { const id = targetCls(); if (id != null) setViewColor(id, null); });
+  $("#eViewColorResetAll").addEventListener("click", () => resetViewColors());
+  on("viewcolors", () => { buildLut(); paintRect(0, 0, E.W, E.H); if (E.sel) setSel(E.sel); else redraw(); syncViewColor(); });
+  try { const v = Number(localStorage.getItem("lab.labelSize")); if (v >= 10 && v <= 32) E.labelSize = Math.round(v); } catch { /* ignore */ }
+  $("#eLabelSize").value = String(E.labelSize); $("#eLabelSizeVal").textContent = String(E.labelSize);
+  $("#eLabelSize").addEventListener("input", (e) => {
+    E.labelSize = Number(e.target.value); $("#eLabelSizeVal").textContent = String(E.labelSize);
+    try { localStorage.setItem("lab.labelSize", String(E.labelSize)); } catch { /* ignore */ }
+    redraw();
+  });
   $("#eFit").addEventListener("click", fit);
   $("#e11").addEventListener("click", () => zoomAt(E.cw / 2, E.ch / 2, 1));
   $("#eUndo").addEventListener("click", () => undoRedo(false));
@@ -752,7 +766,21 @@ function bindToolbar() {
   initHandle();
   $("#pane-edit").addEventListener("click", (e) => { if (e.target.closest("button")) e.target.closest("button").blur(); });
 }
+const targetCls = () => (picker?.active != null ? picker.active : E.sel ? E.sel.id : null);
+const hex2 = (n) => n.toString(16).padStart(2, "0");
+function syncViewColor() {
+  const inp = $("#eViewColor"), id = targetCls();
+  inp.disabled = id == null || id === 255 || !S.byId.has(id);
+  $("#eViewColorReset").disabled = inp.disabled || !hasViewColor(id);
+  $("#eViewColorResetAll").hidden = !Object.keys(VC).length;
+  const tip = "Select a class or an item first";
+  inp.title = inp.disabled ? tip : "Display-only colour of the target class";
+  if (inp.disabled) { $("#eViewColorHint").textContent = ""; return; }
+  const c = viewColor(id); inp.value = "#" + c.map(hex2).join("");
+  $("#eViewColorHint").textContent = `for ${clsName(id)}` + (hasViewColor(id) ? " (custom view colour)" : "") + (E.viewMap ? " (not shown while a map is viewed)" : "");
+}
 function syncUI() {
+  syncViewColor();
   $$("#eTools button").forEach((b) => { b.classList.toggle("on", b.dataset.tool === E.tool); if (b.dataset.tool === "sam") { b.disabled = !samAvailable(); b.title = samAvailable() ? "SAM2 (S)" : "SAM unavailable"; } });
   $("#eSamNeg").classList.toggle("on", E.samNeg);
   $("#eShape").value = E.round ? "round" : "square";

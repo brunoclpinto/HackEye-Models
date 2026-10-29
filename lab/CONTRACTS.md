@@ -1,4 +1,4 @@
-# Models Lab — contracts (v26.1.4, current rules)
+# Models Lab — contracts (v26.1.5, current rules)
 
 The history, the user's decisions and the reasons behind each rule are in [`docs/DECISIONS.md`](docs/DECISIONS.md). The
 approved plans are in [`docs/plans/`](docs/plans/).
@@ -216,6 +216,13 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
   - **Selected-class mask:** with no class selected every class is coloured; with one selected only its base-id pixels
     are (the rest transparent), and outline mode outlines only that class. Full repaint on class change.
   - A pixel grid appears from 8×.
+  - **View colour (v26.1.5, display only):** View → `Colour` (`view-color`) recolours the target class (the selected
+    class, else the Inspect selection's class; disabled with neither) for this viewer: mask, outline, Inspect outline /
+    tint / label, detection tags, hatch, lasso fill and chip swatches. Stored in `localStorage` `lab.viewColors`
+    (`{id: [r,g,b]}`, try/catch); `Reset` / `Reset all`. The taxonomy colour, `taxonomy.json`, the Taxonomy table, maps
+    and exports never change, and no API call is made. With a view map on, merged colours are drawn as before.
+  - **Label size (v26.1.5):** View → `Labels` (`label-size`, 10–32 px, default 13, `localStorage` `lab.labelSize`)
+    sets the Inspect label font; detection tags use round(size × 0.85).
   - `M` toggles the mask and `O` switches to outline mode, which draws a pixel wherever the class differs from the
     right or bottom neighbour. An opacity slider sits in the toolbar.
 - **Readout:** x, y, base id and name under the cursor, plus the merged name when view-through-map is on.
@@ -326,7 +333,8 @@ Apply shows job progress.
 (`{id, px, bbox:[x0,y0,x1,y1] inclusive, label, contours, edgeLen}` or null) and `clientToImg`; v26.1.3 adds
 `classCounts` (`{<id>: {items, px}}` for detected classes) and `classCountMs` to `state()` (v26.1.4 adds `vx`, `vy`,
 `detections` = `[{k, px, bbox, seed:[x,y]}]` or null, `active-class-clear`, `detections`, `detection-item`, and
-`__lab.maskPixel(x,y)` → RGBA of the mask layer), `cls` is null with no class,
+`__lab.maskPixel(x,y)` → RGBA of the mask layer; v26.1.5 adds `view-color`, `view-color-reset`, `view-color-reset-all`,
+`view-color-hint`, `label-size`, and `labelSize`, `labelBox` ({w, h} of the last Inspect label) in `state()`), `cls` is null with no class,
 and groups `edit-detected` / `edit-undetected`; `group-work` is gone; `tab-browse`, `carousel` and `frame-card` are gone), and `window.__lab` with `state()`,
 `imgToClient(x,y)` and `getPixel(x,y)`. Keep them stable, because the E2E suite depends on them.
 **Merge colour:** the colour chosen in the map builder only shows on the card swatch. An exported merged class takes its

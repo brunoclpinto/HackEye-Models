@@ -2,7 +2,7 @@
 // with their detection count) and Undetected (the rest, grouped by hier, collapsed). Recents (digits 1-9), secondary class
 // and protect. No class is active until one is picked.
 import { el, rgbCss, debounce } from "./util.js";
-import { S, on } from "./store.js";
+import { S, on, viewColor } from "./store.js";
 import { makeGroup, setCollapsed, stored } from "./groups.js";
 
 export class Picker {
@@ -15,6 +15,7 @@ export class Picker {
     this.items = new Map(); this.groups = new Map(); this.counts = null;
     this.build();
     on("taxonomy", () => this.build());
+    on("viewcolors", () => { for (const it of this.items.values()) { const sw = it.querySelector(".sw"); if (sw) sw.style.background = rgbCss(viewColor(it._c.id)); } this.refresh(); });
   }
   build() {
     const tax = S.tax;
@@ -52,7 +53,7 @@ export class Picker {
     }
     for (const c of tax) {
       const it = el("span", { class: "pk-item", "data-testid": "picker-item", dataset: { id: c.id } },
-        el("span", { class: "sw", style: { background: rgbCss(c.color) } }), el("span", { class: "nm" }, c.name), el("span", { class: "muted mono cnt", hidden: true }));
+        el("span", { class: "sw", style: { background: rgbCss(viewColor(c.id)) } }), el("span", { class: "nm" }, c.name), el("span", { class: "muted mono cnt", hidden: true }));
       it.dataset.q = `${c.name} ${c.raw_name} ${c.id}`.toLowerCase();
       it._cnt = it.querySelector(".cnt"); it._hier = c.hier; it._c = c;
       it.addEventListener("click", () => { if (this.active === c.id) this.setActive(null); else this.pick(c.id); });
@@ -133,14 +134,14 @@ export class Picker {
   refresh() {
     const a = this.active == null ? null : S.byId.get(this.active), s = S.byId.get(this.secondary);
     this.curBox.hidden = !a;
-    if (a) { this.curSw.style.background = rgbCss(a.color); this.curName.textContent = `${a.name} (${a.id})`; this.curBox.dataset.id = this.active; }
+    if (a) { this.curSw.style.background = rgbCss(viewColor(a.id)); this.curName.textContent = `${a.name} (${a.id})`; this.curBox.dataset.id = this.active; }
     else delete this.curBox.dataset.id;
-    if (s) { this.secSw.style.background = rgbCss(s.color); this.secName.textContent = `${s.name} (${s.id})`; }
+    if (s) { this.secSw.style.background = rgbCss(viewColor(s.id)); this.secName.textContent = `${s.name} (${s.id})`; }
     for (const [id, it] of this.items) { it.classList.toggle("act", id === this.active); it.classList.toggle("sec", id === this.secondary); }
     this.protSel.value = this.protect >= 0 ? this.protect : "";
     this.recentsEl.replaceChildren(...this.recents.map((id, i) => {
       const c = S.byId.get(id);
-      return el("button", { title: `${i + 1}: ${c.name}`, style: { background: rgbCss(c.color) }, onclick: () => this.setActive(id) }, el("i", {}, String(i + 1)));
+      return el("button", { title: `${i + 1}: ${c.name}`, style: { background: rgbCss(viewColor(c.id)) }, onclick: () => this.setActive(id) }, el("i", {}, String(i + 1)));
     }));
   }
   remember(id) {

@@ -23,3 +23,12 @@ export async function loadMeta() {
 export const clsName = (id) => (id === 255 ? "ignore" : S.byId.get(id)?.name ?? `#${id}`);
 export const clsColor = (id) => S.byId.get(id)?.color ?? (id === 255 ? [90, 90, 90] : [128, 128, 128]);
 export const samAvailable = () => !!S.meta?.sam?.available;
+
+// Display-only per-viewer colour overrides (localStorage lab.viewColors = {id: [r,g,b]}); the taxonomy itself is never changed.
+export const VC = {};
+try { Object.assign(VC, JSON.parse(localStorage.getItem("lab.viewColors") || "{}")); } catch { /* ignore */ }
+const saveVC = () => { try { localStorage.setItem("lab.viewColors", JSON.stringify(VC)); } catch { /* ignore */ } };
+export const viewColor = (id) => VC[id] ?? clsColor(id);
+export const hasViewColor = (id) => !!VC[id];
+export function setViewColor(id, c) { if (c) VC[id] = c; else delete VC[id]; saveVC(); emit("viewcolors", id); }
+export function resetViewColors() { for (const k of Object.keys(VC)) delete VC[k]; saveVC(); emit("viewcolors", null); }

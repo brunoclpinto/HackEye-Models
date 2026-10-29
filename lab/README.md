@@ -38,6 +38,10 @@ collapses from its header, groups never scroll on their own (the page scrolls), 
 With a class selected the image shows **only that class's mask**, and a numbered **Detections** row (`#1 <px> px`, largest
 first, same numbers tagged on the image) sits under it: click one to select it and zoom to it. `×` clears the class.
 
+**View group:** `Colour` recolours the selected class (or the Inspect selection's class) on screen only, for contrast;
+the class's real colour, maps and exports stay as they are, and `Reset` restores it. `Labels` sets the label size
+(10–32 px). Both are remembered in this browser.
+
 1. **Browse (top).** Filter by split, clip, status, confidence, class present or edited. Step with `←`/`→` (or `N`/`P`);
    Next on the last frame goes back to the first, and Prev on the first goes to the last. Tag with `Shift+1` ok, `Shift+2` fix, `Shift+3` drop, `Shift+4` todo, or the buttons.
    `drop` is only a tag; deleting frames is a separate, explicit step.
@@ -95,7 +99,7 @@ test edits. It cleans up after itself.
   the next taps negative.
 - **On a phone,** Browse starts collapsed, but Prev/Next and the tags stay in its header.
 
-## Known limits (v26.1.4)
+## Known limits (v26.1.5)
 
 - Touch was tested with Chromium and WebKit emulation (synthetic multi-touch), not yet on a real iPhone.
 - On a 900 px high screen the tab's groups start below the fold. Use the recents (`1`–`9`) or collapse or shrink the

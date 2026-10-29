@@ -225,3 +225,7 @@ pre.log { margin: 4px 0; padding: 6px; background: var(--bg); border-radius: 5px
   .form label, .dlg label { min-width: 0; }
   select { max-width: 100%; min-width: 0; }
 }
+
+/* v26.1.5: view colour controls stay together */
+.vc { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.vc label { display: inline-flex; align-items: center; gap: 5px; }
