@@ -96,7 +96,6 @@ test edits. It cleans up after itself.
 - Touch was tested with Chromium and WebKit emulation (synthetic multi-touch), not yet on a real iPhone.
 - On a 900 px high screen the tab's groups start below the fold. Use the recents (`1`–`9`) or collapse or shrink the
   image group.
-- Detection counts include single-pixel specks of the pseudo-labels (no minimum size), so busy classes read high.
 
 - A colour chosen when merging is shown only in the builder. An exported class takes the colour of its first (largest)
   member, as in `HackEye26.1-48.yaml`.
