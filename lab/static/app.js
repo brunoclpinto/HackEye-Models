@@ -9,7 +9,7 @@ import * as editor from "./js/editor.js";
 import * as taxonomy from "./js/taxonomy.js";
 import * as rules from "./js/rules.js";
 
-const TABS = ["edit", "taxonomy", "rules"], TITLES = { edit: "Work: Edit", taxonomy: "Work: Taxonomy", rules: "Work: Rules" };
+const TABS = ["edit", "taxonomy", "rules"];
 const TAGS = { Digit1: "ok", Digit2: "fix", Digit3: "drop", Digit4: "todo" };
 
 const HELP = [
@@ -50,7 +50,6 @@ async function doRoute() {
   $$("#tabs a").forEach((a) => { a.classList.toggle("on", a.dataset.tab === r.tab); a.href = hashFor(nav.stem, a.dataset.tab, nav.qs); });
   if (tabChanged) {
     $$(".pane").forEach((p) => (p.hidden = p.id !== `pane-${r.tab}`));
-    $("#workTitle").textContent = TITLES[r.tab];
     editor.setInspectOnly(r.tab !== "edit");
     if (prevTab === "taxonomy") taxonomy.hide();
     if (r.tab === "taxonomy") taxonomy.show(); else if (r.tab === "rules") rules.show();

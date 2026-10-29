@@ -5,6 +5,7 @@ import { S, clsName, clsColor, samAvailable, loadMeta } from "./store.js";
 import { Painter } from "./tools.js";
 import { History } from "./history.js";
 import { Picker } from "./picker.js";
+import { classCounts } from "./counts.js";
 import { SamSession } from "./sam.js";
 import { hashFor } from "./nav.js";
 
@@ -28,7 +29,7 @@ let imgCtx, maskCtx, maskImg, mask32, canvas, ctx, picker, sam, raf = 0, strokeR
 // ---------------------------------------------------------------- init
 export function init() {
   canvas = $("#eCanvas"); ctx = canvas.getContext("2d", { alpha: false });
-  picker = new Picker($("#ePicker"), $("#eProtect"), () => { painter.protect = picker.protect; syncUI(); redraw(); });
+  picker = new Picker($("#ePicker"), $("#eProtect"), () => { painter.protect = picker.protect; syncUI(); redraw(); }, $("#ePickerExtra"));
   sam = new SamSession(() => { syncUI(); redraw(); });
   new ResizeObserver(() => onResize()).observe($("#eStage"));
   bindToolbar(); bindCanvas();
@@ -36,7 +37,7 @@ export function init() {
   window.addEventListener("beforeunload", (e) => { if (history.dirty) { e.preventDefault(); e.returnValue = ""; } });
 }
 window.__lab = {
-  state: () => ({ stem: E.stem, zoom: E.z, tool: E.tool, cls: picker?.active, dirty: history.dirty, samCandidates: sam ? sam.cands.length : 0,
+  state: () => ({ stem: E.stem, zoom: E.z, tool: E.tool, cls: picker?.active ?? null, classCounts: E.classCounts, classCountMs: E.classCountMs, dirty: history.dirty, samCandidates: sam ? sam.cands.length : 0,
     selection: E.sel ? { id: E.sel.id, px: E.sel.n, bbox: [...E.sel.bbox], label: selText(), contours: E.sel.contours.length, edgeLen: E.sel.edgeLen } : null }),
   imgToClient: (x, y) => { const r = canvas.getBoundingClientRect(); return { x: r.left + E.vx + (x + 0.5) * E.z, y: r.top + E.vy + (y + 0.5) * E.z }; },
   clientToImg: (cx, cy) => { const r = canvas.getBoundingClientRect(), fx = (cx - r.left - E.vx) / E.z, fy = (cy - r.top - E.vy) / E.z; return { x: Math.floor(fx), y: Math.floor(fy), fx, fy }; },
@@ -314,6 +315,7 @@ function onDown(e) {
   }
   if (!inside(p) && E.tool !== "sam" && E.tool !== "polygon") return;
   if (e.button === 0 && e.altKey && inside(p)) { altPick(e, p); return; }
+  if (e.button === 0 && (E.tool === "brush" || E.tool === "region") && needClass()) return;
   const c = E.tool === "erase" ? picker.secondary : picker.active;
   if (e.button === 0 && (E.tool === "brush" || E.tool === "erase")) {
     E.drag = { kind: "stroke", lx: p.px, ly: p.py, c }; strokeRect = null; painter.protect = picker.protect;
@@ -395,6 +397,7 @@ function tap(d) {
   const fx = (d.sx - E.vx) / E.z, fy = (d.sy - E.vy) / E.z, px = Math.floor(fx), py = Math.floor(fy);
   if (d.region) {
     if (px < 0 || py < 0 || px >= E.W || py >= E.H) return;
+    if (needClass()) return;
     painter.protect = picker.protect; painter.fillRegion(px, py, picker.active, false); strokeRect = null; flushPaint(); endEdit("region");
     return;
   }
@@ -424,30 +427,45 @@ function endEdit(tool) {
   clearSel();
   const p = history.commit(E.grid, strokeRect, tool);
   strokeRect = null;
-  if (p) E.used.add(tool);
+  if (p) { E.used.add(tool); recount(); }
   syncUI();
 }
 function closePoly() {
   const pts = E.poly; E.poly = null;
+  if (pts && pts.length >= 3 && needClass()) { redraw(); return; }
   if (pts && pts.length >= 3) { painter.protect = picker.protect; painter.fillPolygon(pts, picker.active); strokeRect = null; flushPaint(); endEdit("polygon"); }
   redraw();
 }
 function applySam() {
-  if (!sam.has) return;
+  if (!sam.has || needClass()) return;
   painter.protect = picker.protect;
   painter.applyMask(sam.mask, picker.active);
   strokeRect = null; flushPaint(); endEdit("sam"); sam.reset();
 }
 /** Enter in Inspect: relabel the selected region to the active class (protect respected), one undoable patch. */
 function relabelSel() {
-  const r = E.sel; if (!r) return;
+  const r = E.sel; if (!r || needClass()) return;
   painter.protect = picker.protect; painter.applyMask(r.mask, picker.active);
   strokeRect = null; flushPaint(); endEdit("region");
+}
+/** Pick-a-class guard for painting tools: true (and one toast) when no class is active. */
+function needClass() {
+  if (picker.active != null) return false;
+  toast("Pick a class first", "error", 2500);
+  return true;
+}
+/** Re-partition the picker (Detected / Undetected) from the grid; called on frame open and after every committed edit. */
+function recount() {
+  if (!E.grid) return;
+  const t0 = performance.now();
+  E.classCounts = classCounts(E.grid, E.W, E.H);
+  E.classCountMs = Math.round((performance.now() - t0) * 10) / 10;
+  picker.setCounts(E.classCounts);
 }
 function undoRedo(redo) {
   clearSel();
   const r = redo ? history.redo(E.grid) : history.undo(E.grid);
-  if (r) paintRect(r.x, r.y, r.w, r.h);
+  if (r) { paintRect(r.x, r.y, r.w, r.h); recount(); }
   syncUI();
 }
 
@@ -504,7 +522,7 @@ export async function show(stem, qs = "", { discard = false } = {}) {
     clearSel(); history.reset(a.grid, a.W, a.H); E.used.clear(); E.poly = null; strokeRect = null;
     sam.setFrame(stem, a.W, a.H);
     buildLut(); paintRect(0, 0, a.W, a.H);
-    { const pr = new Set(); const seen = new Uint8Array(256); for (let i = 0; i < a.grid.length; i++) seen[a.grid[i]] = 1; seen.forEach((v, id) => v && pr.add(id)); picker.setPresent(pr); }
+    recount();
     E.fitted = true; onResize();
     syncUI();
     if (samAvailable()) sam.prefetch(stem);

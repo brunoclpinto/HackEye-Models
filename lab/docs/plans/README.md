@@ -5,4 +5,4 @@ Each version gets one approved plan, saved at commit time as `v<version>.md`. Ev
 
 - **Milestone lab26.1 (mask correction, SAM2, taxonomy builder):**
   - [`v26.1.md`](v26.1.md) holds the scope and the **current status, open issues and next steps**.
-  - Versions: [`v26.1.0`](v26.1.0.md), [`v26.1.1`](v26.1.1.md) and its [navigation follow-up](v26.1.1-followup-navigation.md), [`v26.1.2`](v26.1.2.md) and its [outline follow-up](v26.1.2-followup-outline.md).
+  - Versions: [`v26.1.0`](v26.1.0.md), [`v26.1.1`](v26.1.1.md) and its [navigation follow-up](v26.1.1-followup-navigation.md), [`v26.1.2`](v26.1.2.md) and its [outline follow-up](v26.1.2-followup-outline.md), [`v26.1.3`](v26.1.3.md).

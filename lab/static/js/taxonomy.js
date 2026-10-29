@@ -67,8 +67,8 @@ function renderTable() {
       });
       return tr;
     })));
-  const host = $("#tTable"), st = host.scrollTop;
-  host.replaceChildren(tbl); host.scrollTop = st;
+  const host = $("#tTable"), pg = $("#page"), st = pg.scrollTop;
+  host.replaceChildren(tbl); pg.scrollTop = st;
   syncButtons();
 }
 function syncButtons() {

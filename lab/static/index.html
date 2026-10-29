@@ -64,139 +64,135 @@
     </div>
   </section>
 
-  <!-- Work: the selected tab's controls -->
-  <section class="grp" data-gid="work">
-    <header class="gh"><button class="gt"><i class="chev"></i><span id="workTitle">Work</span></button></header>
-    <div class="gb">
-      <div class="pane" id="pane-edit">
-        <div class="cols2">
-          <section class="grp sub wide" data-gid="edit-classes">
-            <header class="gh"><button class="gt"><i class="chev"></i><span>Classes</span></button></header>
-            <div class="gb"><div id="ePicker"></div></div>
-          </section>
-          <div class="stack">
-            <section class="grp sub" data-gid="edit-tools">
-              <header class="gh"><button class="gt"><i class="chev"></i><span>Tools</span></button></header>
-              <div class="gb tools">
-                <div class="seg" id="eTools">
-                  <button data-testid="tool-inspect" data-tool="inspect" title="Inspect: click or tap an item to box it (V)">Inspect</button>
-                  <button data-testid="tool-brush" data-tool="brush" title="Brush (B)">Brush</button>
-                  <button data-testid="tool-erase" data-tool="erase" title="Erase to secondary class (E)">Erase</button>
-                  <button data-testid="tool-region" data-tool="region" title="Region relabel (R)">Region</button>
-                  <button data-testid="tool-polygon" data-tool="polygon" title="Polygon / lasso (L)">Lasso</button>
-                  <button data-testid="tool-sam" data-tool="sam" title="SAM2 (S)">SAM</button>
-                </div>
-                <label title="Brush size ([ and ])">Size <input id="eSize" data-testid="brush-size" type="range" min="1" max="64" value="8"><b id="eSizeV" class="mono">8</b></label>
-                <select id="eShape" data-testid="brush-shape" title="Round / square (Q)"><option value="round">Round</option><option value="square">Square</option></select>
-                <button id="eSamNeg" data-testid="sam-negative" title="SAM: make the next taps negative points (touch has no right-click)">&minus; point</button>
-                <span id="eSamInfo" class="muted mono"></span>
-              </div>
-            </section>
-            <section class="grp sub" data-gid="edit-protect">
-              <header class="gh"><button class="gt"><i class="chev"></i><span>Protect</span></button></header>
-              <div class="gb"><div id="eProtect"></div></div>
-            </section>
-            <section class="grp sub" data-gid="edit-view">
-              <header class="gh"><button class="gt"><i class="chev"></i><span>View</span></button></header>
-              <div class="gb tools">
-                <label title="Overlay opacity">Opacity <input id="eOpacity" type="range" min="0" max="100" value="55"></label>
-                <button id="eMask" title="Toggle mask (M)">Mask</button>
-                <button id="eOutline" title="Outline mode (O)">Outline</button>
-                <button id="eGrid" title="Pixel grid (G), shown from 8x">Grid</button>
-                <label>View map <select id="eMap"><option value="">none</option></select></label>
-                <button id="eFit" title="Fit (F)">Fit</button>
-                <button id="e11" title="Actual pixels (0)">1:1</button>
-              </div>
-            </section>
-            <section class="grp sub" data-gid="edit-frame">
-              <header class="gh"><button class="gt"><i class="chev"></i><span>Frame</span></button></header>
-              <div class="gb tools">
-                <div class="seg" id="eStatus">
-                  <button data-st="ok">ok</button><button data-st="fix">fix</button><button data-st="drop">drop</button><button data-st="todo">todo</button>
-                </div>
-                <input id="eNote" type="text" placeholder="note" size="24">
-                <button id="eUndo" title="Undo (Ctrl+Z)">Undo</button>
-                <button id="eRedo" title="Redo (Ctrl+Shift+Z)">Redo</button>
-                <button id="eSave" class="primary" data-testid="btn-save" title="Save (Ctrl+S)">Save</button>
-                <button id="eRevert" data-testid="btn-revert" title="Revert to original">Revert</button>
-                <button id="ePrev" title="Previous (P)">&larr; P</button><button id="eNext" title="Next (N)">N &rarr;</button>
-              </div>
-            </section>
+  <!-- The selected tab's controls (direct children of #page) -->
+  <div class="pane" id="pane-edit">
+    <div class="cols2">
+      <section class="grp sub wide" data-gid="edit-classes">
+        <header class="gh"><button class="gt"><i class="chev"></i><span>Classes</span></button></header>
+        <div class="gb"><div id="ePicker"></div></div>
+      </section>
+      <div class="stack">
+        <section class="grp sub" data-gid="edit-tools">
+          <header class="gh"><button class="gt"><i class="chev"></i><span>Tools</span></button></header>
+          <div class="gb tools">
+            <div class="seg" id="eTools">
+              <button data-testid="tool-inspect" data-tool="inspect" title="Inspect: click or tap an item to box it (V)">Inspect</button>
+              <button data-testid="tool-brush" data-tool="brush" title="Brush (B)">Brush</button>
+              <button data-testid="tool-erase" data-tool="erase" title="Erase to secondary class (E)">Erase</button>
+              <button data-testid="tool-region" data-tool="region" title="Region relabel (R)">Region</button>
+              <button data-testid="tool-polygon" data-tool="polygon" title="Polygon / lasso (L)">Lasso</button>
+              <button data-testid="tool-sam" data-tool="sam" title="SAM2 (S)">SAM</button>
+            </div>
+            <label title="Brush size ([ and ])">Size <input id="eSize" data-testid="brush-size" type="range" min="1" max="64" value="8"><b id="eSizeV" class="mono">8</b></label>
+            <select id="eShape" data-testid="brush-shape" title="Round / square (Q)"><option value="round">Round</option><option value="square">Square</option></select>
+            <span id="ePickerExtra" class="pk-extra"></span>
+            <button id="eSamNeg" data-testid="sam-negative" title="SAM: make the next taps negative points (touch has no right-click)">&minus; point</button>
+            <span id="eSamInfo" class="muted mono"></span>
           </div>
-        </div>
-      </div>
-
-      <div class="pane" id="pane-taxonomy" hidden>
-        <div class="cols2">
-          <section class="grp sub wide" data-gid="tax-classes">
-            <header class="gh"><button class="gt"><i class="chev"></i><span>Classes</span></button></header>
-            <div class="gb">
-              <div class="bar">
-                <input id="tFilter" type="search" placeholder="Filter classes" autocomplete="off">
-                <button id="tNew" data-testid="btn-new-class">New class</button>
-                <button id="tSplit" data-testid="btn-split">Split</button>
-                <button id="tEdit" data-testid="btn-edit-class">Edit</button>
-                <button id="tDelete" data-testid="btn-delete-class">Delete</button>
-                <span class="grow"></span>
-                <button id="tVoid" title="Move checked classes under __ignore__">Void checked</button>
-                <button id="tMerge" class="primary" data-testid="btn-merge" title="Merge checked classes / selected groups">Merge</button>
-              </div>
-              <div id="tTable" class="scroll"></div>
-            </div>
-          </section>
-          <div class="stack">
-            <section class="grp sub" data-gid="tax-map">
-              <header class="gh"><button class="gt"><i class="chev"></i><span>Map builder</span></button><span class="grow"></span><span class="muted mono">N =</span> <b id="tN" data-testid="preview-n" class="mono"></b></header>
-              <div class="gb">
-                <div class="bar">
-                  <label>Map <select id="tMapSel" data-testid="map-load"><option value="">(choose)</option></select></label>
-                  <button id="tLoad">Load</button>
-                  <button id="tIdentity">Identity</button>
-                  <span class="muted">The image shows this map (view-through-map).</span>
-                </div>
-                <div id="tGroups" class="scroll"></div>
-              </div>
-            </section>
-            <section class="grp sub" data-gid="tax-save">
-              <header class="gh"><button class="gt"><i class="chev"></i><span>Save / export</span></button></header>
-              <div class="gb">
-                <div class="bar wrap">
-                  <input id="tName" data-testid="map-name" type="text" autocomplete="off" spellcheck="false" size="34">
-                  <button id="tSaveMap" data-testid="btn-save-map">Save map</button>
-                  <button id="tExport" class="primary" data-testid="btn-export">Save as new dataset</button>
-                </div>
-                <div id="tJob" data-testid="job-status" class="job" hidden></div>
-              </div>
-            </section>
+        </section>
+        <section class="grp sub" data-gid="edit-protect">
+          <header class="gh"><button class="gt"><i class="chev"></i><span>Protect</span></button></header>
+          <div class="gb"><div id="eProtect"></div></div>
+        </section>
+        <section class="grp sub" data-gid="edit-view">
+          <header class="gh"><button class="gt"><i class="chev"></i><span>View</span></button></header>
+          <div class="gb tools">
+            <label title="Overlay opacity">Opacity <input id="eOpacity" type="range" min="0" max="100" value="55"></label>
+            <button id="eMask" title="Toggle mask (M)">Mask</button>
+            <button id="eOutline" title="Outline mode (O)">Outline</button>
+            <button id="eGrid" title="Pixel grid (G), shown from 8x">Grid</button>
+            <label>View map <select id="eMap"><option value="">none</option></select></label>
+            <button id="eFit" title="Fit (F)">Fit</button>
+            <button id="e11" title="Actual pixels (0)">1:1</button>
           </div>
-        </div>
-      </div>
-
-      <div class="pane" id="pane-rules" hidden>
-        <div class="cols2">
-          <section class="grp sub" data-gid="rules-rule">
-            <header class="gh"><button class="gt"><i class="chev"></i><span>Rule</span></button></header>
-            <div class="gb form">
-              <p class="hint">Relabel every pixel of one class to another across the filtered frames. Dry run first.</p>
-              <div class="two"><label>From class <select id="rFrom" data-testid="rule-from"></select></label><label>To class <select id="rTo" data-testid="rule-to"></select></label></div>
-              <div class="two"><label>Split <select id="rSplit"><option value="">all</option><option>train</option><option>val</option></select></label>
-                <label>Clip <select id="rClip"><option value="">all</option></select></label></div>
-              <label>Only these stems (optional, whitespace or comma separated) <textarea id="rStems" rows="2"></textarea></label>
-              <div class="row"><button id="rDry" data-testid="btn-dry-run">Dry run</button></div>
+        </section>
+        <section class="grp sub" data-gid="edit-frame">
+          <header class="gh"><button class="gt"><i class="chev"></i><span>Frame</span></button></header>
+          <div class="gb tools">
+            <div class="seg" id="eStatus">
+              <button data-st="ok">ok</button><button data-st="fix">fix</button><button data-st="drop">drop</button><button data-st="todo">todo</button>
             </div>
-          </section>
-          <section class="grp sub wide" data-gid="rules-result">
-            <header class="gh"><button class="gt"><i class="chev"></i><span>Result</span></button></header>
-            <div class="gb">
-              <div id="rResult"><p class="hint">Run a dry run to see the counts and sample frames. Click a sample to open it in the image above.</p></div>
-              <div class="row"><button id="rApply" class="primary" disabled>Apply</button></div>
-              <div id="rJob" class="job" hidden></div>
-            </div>
-          </section>
-        </div>
+            <input id="eNote" type="text" placeholder="note" size="24">
+            <button id="eUndo" title="Undo (Ctrl+Z)">Undo</button>
+            <button id="eRedo" title="Redo (Ctrl+Shift+Z)">Redo</button>
+            <button id="eSave" class="primary" data-testid="btn-save" title="Save (Ctrl+S)">Save</button>
+            <button id="eRevert" data-testid="btn-revert" title="Revert to original">Revert</button>
+            <button id="ePrev" title="Previous (P)">&larr; P</button><button id="eNext" title="Next (N)">N &rarr;</button>
+          </div>
+        </section>
       </div>
     </div>
-  </section>
+  </div>
+
+  <div class="pane" id="pane-taxonomy" hidden>
+    <div class="cols2">
+      <section class="grp sub wide" data-gid="tax-classes">
+        <header class="gh"><button class="gt"><i class="chev"></i><span>Classes</span></button></header>
+        <div class="gb">
+          <div class="bar">
+            <input id="tFilter" type="search" placeholder="Filter classes" autocomplete="off">
+            <button id="tNew" data-testid="btn-new-class">New class</button>
+            <button id="tSplit" data-testid="btn-split">Split</button>
+            <button id="tEdit" data-testid="btn-edit-class">Edit</button>
+            <button id="tDelete" data-testid="btn-delete-class">Delete</button>
+            <span class="grow"></span>
+            <button id="tVoid" title="Move checked classes under __ignore__">Void checked</button>
+            <button id="tMerge" class="primary" data-testid="btn-merge" title="Merge checked classes / selected groups">Merge</button>
+          </div>
+          <div id="tTable"></div>
+        </div>
+      </section>
+      <div class="stack">
+        <section class="grp sub" data-gid="tax-map">
+          <header class="gh"><button class="gt"><i class="chev"></i><span>Map builder</span></button><span class="grow"></span><span class="muted mono">N =</span> <b id="tN" data-testid="preview-n" class="mono"></b></header>
+          <div class="gb">
+            <div class="bar">
+              <label>Map <select id="tMapSel" data-testid="map-load"><option value="">(choose)</option></select></label>
+              <button id="tLoad">Load</button>
+              <button id="tIdentity">Identity</button>
+              <span class="muted">The image shows this map (view-through-map).</span>
+            </div>
+            <div id="tGroups"></div>
+          </div>
+        </section>
+        <section class="grp sub" data-gid="tax-save">
+          <header class="gh"><button class="gt"><i class="chev"></i><span>Save / export</span></button></header>
+          <div class="gb">
+            <div class="bar wrap">
+              <input id="tName" data-testid="map-name" type="text" autocomplete="off" spellcheck="false" size="34">
+              <button id="tSaveMap" data-testid="btn-save-map">Save map</button>
+              <button id="tExport" class="primary" data-testid="btn-export">Save as new dataset</button>
+            </div>
+            <div id="tJob" data-testid="job-status" class="job" hidden></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="pane" id="pane-rules" hidden>
+    <div class="cols2">
+      <section class="grp sub" data-gid="rules-rule">
+        <header class="gh"><button class="gt"><i class="chev"></i><span>Rule</span></button></header>
+        <div class="gb form">
+          <p class="hint">Relabel every pixel of one class to another across the filtered frames. Dry run first.</p>
+          <div class="two"><label>From class <select id="rFrom" data-testid="rule-from"></select></label><label>To class <select id="rTo" data-testid="rule-to"></select></label></div>
+          <div class="two"><label>Split <select id="rSplit"><option value="">all</option><option>train</option><option>val</option></select></label>
+            <label>Clip <select id="rClip"><option value="">all</option></select></label></div>
+          <label>Only these stems (optional, whitespace or comma separated) <textarea id="rStems" rows="2"></textarea></label>
+          <div class="row"><button id="rDry" data-testid="btn-dry-run">Dry run</button></div>
+        </div>
+      </section>
+      <section class="grp sub wide" data-gid="rules-result">
+        <header class="gh"><button class="gt"><i class="chev"></i><span>Result</span></button></header>
+        <div class="gb">
+          <div id="rResult"><p class="hint">Run a dry run to see the counts and sample frames. Click a sample to open it in the image above.</p></div>
+          <div class="row"><button id="rApply" class="primary" disabled>Apply</button></div>
+          <div id="rJob" class="job" hidden></div>
+        </div>
+      </section>
+    </div>
+  </div>
 </main>
 
 <footer id="status" class="mono">

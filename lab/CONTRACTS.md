@@ -1,4 +1,4 @@
-# Models Lab — contracts (v26.1.2, current rules)
+# Models Lab — contracts (v26.1.3, current rules)
 
 The history, the user's decisions and the reasons behind each rule are in [`docs/DECISIONS.md`](docs/DECISIONS.md). The
 approved plans are in [`docs/plans/`](docs/plans/).
@@ -186,15 +186,18 @@ reserved group key `__ignore__` whose members map to 255)
    - Its height is resizable with a drag handle that's remembered; double-click resets it to the viewport height minus
      400 px.
    - When collapsed, the header still shows the stem, status, edits and clip info.
-4. **Work group:** the selected tab's controls, in sub-groups:
+4. **The selected tab's sub-groups**, directly on the page (v26.1.3 dropped the wrapping Work group):
    - Edit: Classes · Tools · Protect · View · Frame;
    - Taxonomy: Classes · Map builder · Save;
    - Rules: Rule · Result.
 5. The status bar.
 
 **Collapsing:** every group and sub-group, including each hierarchy group in the class picker, collapses from its header.
-The state is kept in `localStorage` per group id, inside try/catch. Picker hierarchies with no pixels in the frame start
+The state is kept in `localStorage` per group id, inside try/catch. Picker hierarchy groups (under Undetected) start
 collapsed.
+
+**No inline scrolling (v26.1.3):** no group or sub-group body has its own vertical scroll area or `max-height`; each takes
+the height of its content and `#page` is the only vertical scroller. On phones the taxonomy table may scroll sideways.
 
 **Navigation keys (all tabs, when focus is not in an input):** `←`/`→` and `N`/`P` step with wrap-around (autosaving when
 dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.code`).
@@ -212,11 +215,21 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
   - `M` toggles the mask and `O` switches to outline mode, which draws a pixel wherever the class differs from the
     right or bottom neighbour. An opacity slider sits in the toolbar.
 - **Readout:** x, y, base id and name under the cursor, plus the merged name when view-through-map is on.
-- **Picker (`picker.js`, Edit → Classes):** every class from `/api/taxonomy` as compact chips, grouped by `hier`, each
-  group collapsible, with a search box (`/` focuses it and opens the matching groups).
-  - Recents 1–9: digit keys always pick from recents.
-  - `Alt+click` is the eyedropper.
-  - The active class is shown with its swatch.
+- **Picker (`picker.js`, Edit → Classes):** every class from `/api/taxonomy` as compact chips.
+  - **Head:** the search box (`/` focuses it and opens the matching groups), then the active class (swatch and
+    `<name> (<id>)`, `active-class`) **only while a class is selected**. Nothing else sits there.
+  - **No class is active on load.** A chip click, a recents button, a digit `1`–`9`, `X` or `Alt+click` (eyedropper)
+    selects one; clicking the active chip again, or `Esc` in the empty search box, clears it.
+  - **Two side-by-side sub-groups** (stacked at phone width), both collapsible:
+    - **Detected** (`edit-detected`): classes with pixels in the open frame, flat, sorted by detections (most first, ties by
+      name). Each chip reads `<swatch> <name> <count>`, the count muted mono like the merge card's "N classes".
+    - **Undetected** (`edit-undetected`): the rest, in collapsible `hier` groups (collapsed by default), no count.
+  - **A detection** is a 4-connected region of one class (what Inspect selects), with no minimum size. `js/counts.js`
+    labels the grid in one pass (~9 ms for 1280×720) on frame open and after every committed edit, undo and redo. The chip
+    tooltip adds `<n> detections, <px> px`.
+  - **Tools sub-group** holds the "Erase to" secondary class and the recents buttons (`#ePickerExtra`).
+  - **Painting without a class:** brush, region, lasso, SAM apply and Enter relabel change nothing and toast "Pick a class
+    first". Erase uses the secondary class; Inspect needs no class.
 - **Protect source class:** a dropdown (none, or a class). When it's set, every tool changes only pixels of that class.
   `Shift+Alt+click` sets it from under the cursor.
 - **Inspect (`V`, the default tool; the only tool on the Taxonomy and Rules tabs):**
@@ -259,7 +272,7 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
     - The `− point` button (`sam-negative`) makes the next SAM taps negative.
   - **Phone width (≤ 430 px):**
     - no horizontal scroll; the filter bar wraps; the nav row stays on one line;
-    - work sub-groups stack in one column; tap targets are ≥ 36 px;
+    - the tab's sub-groups and the Detected / Undetected lists stack in one column; tap targets are ≥ 36 px;
     - Browse starts collapsed, with the nav row still in its header;
     - the image height fits the width.
 - **History (`history.js`):** a per-frame stack of `{x, y, w, h, before, after}` patches, capped at 200. `Ctrl+Z` undoes and
@@ -296,7 +309,9 @@ Apply shows job progress.
 **Test hooks:** the `data-testid` attributes listed in `lab/tests/e2e/conftest.py` (v26.1.1 adds `nav-prev`,
 `nav-next`, `nav-pos` with `data-index` and `data-total`, `tag-ok|fix|drop|todo`, `group-<id>` with `data-collapsed`, and
 `group-toggle`; v26.1.2 adds `tool-inspect`, `sam-negative` and `selection-label`, `selection` in `state()`
-(`{id, px, bbox:[x0,y0,x1,y1] inclusive, label, contours, edgeLen}` or null) and `clientToImg`; `tab-browse`, `carousel` and `frame-card` are gone), and `window.__lab` with `state()`,
+(`{id, px, bbox:[x0,y0,x1,y1] inclusive, label, contours, edgeLen}` or null) and `clientToImg`; v26.1.3 adds
+`classCounts` (`{<id>: {items, px}}` for detected classes) and `classCountMs` to `state()`, `cls` is null with no class,
+and groups `edit-detected` / `edit-undetected`; `group-work` is gone; `tab-browse`, `carousel` and `frame-card` are gone), and `window.__lab` with `state()`,
 `imgToClient(x,y)` and `getPixel(x,y)`. Keep them stable, because the E2E suite depends on them.
 **Merge colour:** the colour chosen in the map builder only shows on the card swatch. An exported merged class takes its
 first member's colour, because the map format has no colour field.

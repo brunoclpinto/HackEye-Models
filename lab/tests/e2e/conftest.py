@@ -7,14 +7,14 @@ B E R L S tools, Q shape, Ctrl+Z / Ctrl+Shift+Z undo/redo, Ctrl+S save, Enter/Es
 
 Global hook (editor page), `window.__lab`:
   state()            -> {stem, zoom, tool, cls, dirty, samCandidates}   zoom = display zoom factor, tool = 'brush'|'erase'|
-                        'region'|'polygon'|'sam', cls = active base id, dirty = unsaved edits, samCandidates = number of SAM masks shown
+                        'region'|'polygon'|'sam', cls = active base id or null, dirty = unsaved edits, samCandidates = number of SAM masks shown
   imgToClient(x, y)  -> {x, y}  client (viewport) coordinates of the CENTRE of image pixel (x, y)
   clientToImg(cx, cy)-> {x, y, fx, fy} image pixel (floored) and float image coords under a client point
   getPixel(x, y)     -> base id of the editor's mask grid at that pixel
   state().selection  -> null or {id, px, bbox:[x0,y0,x1,y1] inclusive, label}  (Inspect selection)
-Layout (v26.1.1, one page: Browse group, Image group, Work group; tabs Edit | Taxonomy | Rules, default Edit; no Browse tab):
+Layout (v26.1.3, one page: Browse group, Image group, then the selected pane directly under #page; tabs Edit | Taxonomy | Rules, default Edit; no Browse tab):
                     tab-edit tab-taxonomy tab-rules      sam-status (data-available="true|false")
-                    group-<id> (every group/sub-group; attr data-collapsed="true|false"; ids browse image work edit-classes edit-tools
+                    group-<id> (every group/sub-group; attr data-collapsed="true|false"; ids browse image edit-classes edit-detected edit-undetected edit-tools
                     edit-protect edit-view edit-frame tax-classes tax-map tax-save rules-rule rules-result hier-<hier>)
                     group-toggle (the header button inside a group; the group's own is the first one)
 Browse (always visible):
@@ -28,7 +28,7 @@ Editor:             editor-canvas (the display canvas)   editor (root; data-dirt
                     tool-inspect (default tool) sam-negative (toggle: next SAM taps are negative)  selection-label (text of the box label)
                     tool-brush tool-erase tool-region tool-polygon tool-sam (buttons)
                     brush-size (<input>)   brush-shape (<select> values round|square)
-                    picker-search (<input>)  picker-item (one per class; attr data-id = base id)  active-class (data-id)
+                    picker-search (<input>)  picker-item (one per class; attr data-id = base id)  active-class (data-id; hidden unless a class is selected)
                     protect-select (<select>, option value = base id or "" for none)
                     btn-save  btn-revert (asks window.confirm)  readout (text under the cursor)
 Taxonomy:           class-row (attrs data-id data-custom)   btn-new-class btn-split btn-edit-class btn-delete-class
@@ -214,7 +214,10 @@ def pixel(page, x, y):
 
 
 def pick_class(page, cid):
-    # chips of hierarchy groups without pixels in the frame start collapsed; searching by id expands the matching group
+    # chips of Undetected hier groups start collapsed; searching by id expands the matching group.
+    # Clicking the active chip would clear the class, so an already active class is left alone.
+    if state(page)["cls"] == cid:
+        return
     page.fill(tid("picker-search"), str(cid))
     page.locator(f'{tid("picker-item")}[data-id="{cid}"]').first.click()
     page.fill(tid("picker-search"), "")

@@ -29,8 +29,12 @@ docker compose stop sam           # frees the GPU; the lab keeps working, with t
 ## Workflow
 
 **Layout (one page):** Browse sits permanently at the top: filters, plus Prev/Next navigation that wraps around. Below it
-is the image, then the work panel of the selected menu tab, **Edit | Taxonomy | Rules** (default Edit). Every group
-collapses from its header, and the image height can be dragged.
+is the image, then the sub-groups of the selected menu tab, **Edit | Taxonomy | Rules** (default Edit). Every group
+collapses from its header, groups never scroll on their own (the page scrolls), and the image height can be dragged.
+
+**Classes (Edit):** search, then the selected class (shown only once you pick one; click it again to clear). Below,
+**Detected** lists the classes in the open frame with their number of detections (separate regions), most first, and
+**Undetected** holds the rest by category. The lists update after every edit. Painting tools need a class picked.
 
 1. **Browse (top).** Filter by split, clip, status, confidence, class present or edited. Step with `←`/`→` (or `N`/`P`);
    Next on the last frame goes back to the first, and Prev on the first goes to the last. Tag with `Shift+1` ok, `Shift+2` fix, `Shift+3` drop, `Shift+4` todo, or the buttons.
@@ -87,11 +91,12 @@ test edits. It cleans up after itself.
   the next taps negative.
 - **On a phone,** Browse starts collapsed, but Prev/Next and the tags stay in its header.
 
-## Known limits (v26.1.2)
+## Known limits (v26.1.3)
 
 - Touch was tested with Chromium and WebKit emulation (synthetic multi-touch), not yet on a real iPhone.
-- On a 900 px high screen the work panel starts below the fold. Use the recents (`1`–`9`) or collapse or shrink the
+- On a 900 px high screen the tab's groups start below the fold. Use the recents (`1`–`9`) or collapse or shrink the
   image group.
+- Detection counts include single-pixel specks of the pseudo-labels (no minimum size), so busy classes read high.
 
 - A colour chosen when merging is shown only in the builder. An exported class takes the colour of its first (largest)
   member, as in `HackEye26.1-48.yaml`.

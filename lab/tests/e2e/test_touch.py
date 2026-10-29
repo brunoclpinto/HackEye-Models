@@ -2,7 +2,7 @@
 Runs on Chromium touch emulation and on WebKit (iOS engine). Pinches use dispatched PointerEvents (pointerType touch)."""
 import math
 
-from conftest import BASE, find_pixel, mask_array, open_editor, state, tid, to_client
+from conftest import BASE, find_pixel, mask_array, open_editor, pick_class, state, tid, to_client
 
 PTR = """(a) => { const c = document.querySelector('[data-testid="editor-canvas"]');
   c.dispatchEvent(new PointerEvent(a.type, {pointerId: a.id, pointerType: 'touch', isPrimary: a.id === 1, button: 0,
@@ -121,6 +121,7 @@ def test_second_finger_rolls_back_a_started_stroke(touch_page, clean_frame):
     before = mask_array(stem)
     x, y, old = find_pixel(before, not_class=0)
     open_touch(touch_page, stem)
+    pick_class(touch_page, 0)
     touch_page.keyboard.press("b")
     touch_page.select_option(tid("brush-shape"), "square")
     touch_page.fill(tid("brush-size"), "64")

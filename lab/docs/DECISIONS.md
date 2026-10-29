@@ -204,3 +204,49 @@ in hackeye lab."
 - **Possible tuning after the user's real-phone test:** on small items at phone size, the dark under-stroke can look heavier
   than the class colour on dark classes such as car blue.
 - Plan: [`plans/v26.1.2-followup-outline.md`](plans/v26.1.2-followup-outline.md). Tests: 39 unit, 29 E2E.
+
+---
+
+## v26.1.3 — no Work group, full-height groups, Detected / Undetected classes with counts, selected class only when picked
+**Prompt (2026-10-29, "go for it").** "drop work group, the subgroups are enough; groups and subgroups are never
+scrollable inline, just occupy the height they need to occupy; classes divided into 2 parallel subgroups detected (classes
+found in selected image) and undetected (classes not found in selected image); classes should have the amount of
+detections in front of name like the class merge group; love the selected color and class next to search bar but should
+only be there if a class is actually selected and only a selected class."
+
+**Decisions (Opus, from the request):**
+- **Work group dropped:** the tab panes sit directly on the page; the tab bar already says which tab is open.
+- **No inline scrolling:** the class list, the taxonomy table and the map builder lost their `max-height`; the page is the
+  only vertical scroller. Sideways scrolling of the taxonomy table on phones stays (it isn't vertical, and the table is
+  wider than a phone).
+- **"Detection" = item:** a 4-connected region of one class, the same thing Inspect outlines, with no minimum size, so the
+  number matches what a click shows. The tooltip adds the pixel total.
+- **Detected is flat and sorted by count** (the busiest classes first, which is where corrections start); **Undetected**
+  keeps the hier groups, collapsed, because it holds ~100 classes.
+- **"Only a selected class":** no class is active on load (before, the first class was silently active, which is why the
+  head always showed one). The "Erase to" box and the recents, which also sat in the head, moved to Tools. Painting with
+  no class changes nothing and toasts once. Clicking the active chip again clears it.
+
+**Implementation (Sonnet worker):** new `js/counts.js` (one iterative flood-fill pass over the grid); `picker.js`
+rewritten to build the chips once and move them between the lists; `editor.js` recounts on frame open, after every
+committed edit, undo and redo (a plain save changes no pixels, so it doesn't recount), and guards the painting tools.
+Worker choices: the hier-group counts under Undetected count only their undetected members; a lasso without a class toasts
+when it is closed, not per vertex; `X` with no active class takes the secondary.
+
+**Opus review (screenshots, live lab):** desktop 1440 px on `Chest-center-0001_000000`: Detected 22 (barrier curb 11,
+flat sidewalk 9, flat road 8, ...) beside Undetected 102 in 8 hier groups, with "nature snow (62)" next to the search box
+after picking it; iPhone 390 px: the lists stack, no horizontal scroll. Labelling took 9.3 ms.
+
+**Result:** 28 unit tests and 35 E2E tests pass (6 new in `test_classes.py`: active class hidden / shown / cleared;
+Detected equals the classes in the fixture mask on disk; chip counts equal `cv2.connectedComponents(connectivity=4)`;
+painting a new class moves it to Detected with count 1 and undo moves it back; no class = no change + toast; no inline
+vertical scroller on Edit and Taxonomy; no Work group). The earlier entries' "39 unit tests" was a miscount: the suite
+has had 28 tests since v26.1.0.
+
+**Known / possible issues:**
+- Counts include the pseudo-labels' single-pixel specks, so noisy classes read high (e.g. "flat road 8" on a frame with
+  one road). A minimum size could be added if that's distracting.
+- With the class list at full height, the Tools / View / Frame groups on a phone sit below ~100 undetected chips unless
+  their hier groups stay collapsed (they are by default).
+- Not yet seen on a real iPhone (same as v26.1.2).
+- Plan: [`plans/v26.1.3.md`](plans/v26.1.3.md).
