@@ -72,7 +72,7 @@ export function dialog(title, build, okText = "OK") {
     window.addEventListener("keydown", onKey, true);
     const box = el("div", { class: "card dlg" },
       el("h2", {}, title), body,
-      el("div", { class: "row end" }, el("button", { onclick: () => done(null) }, "Cancel"), el("button", { class: "primary", "data-testid": "dlg-ok", onclick: ok }, okText)));
+      el("div", { class: "row end" }, el("button", { title: "Close without changes (Esc)", onclick: () => done(null) }, "Cancel"), el("button", { class: "primary", "data-testid": "dlg-ok", title: "Confirm", onclick: ok }, okText)));
     host.replaceChildren(box);
     host.hidden = false;
     host.onmousedown = (e) => { if (e.target === host) done(null); };

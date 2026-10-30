@@ -28,8 +28,10 @@ docker compose stop sam           # frees the GPU; the lab keeps working, with t
 
 ## Workflow
 
-**Layout (one page):** Browse sits permanently at the top: filters, plus Prev/Next navigation that wraps around. Below it
-is the image, then the sub-groups of the selected menu tab, **Edit | Taxonomy | Rules** (default Edit). Every group
+**Layout (one page):** **Filters** sits permanently at the top. Below it is the **Frame** group: its header holds the
+tags (ok, fix, drop, todo), Prev/Next (wraps around) and **Save**; on the Edit tab its left side holds Tools, Protect and
+View (at most a quarter of the width), with the image on the right. Then come the sub-groups of the selected menu tab,
+**Edit | Taxonomy | Rules** (default Edit). Hover any button for a short description. Every group
 collapses from its header, groups never scroll on their own (the page scrolls), and the image height can be dragged.
 
 **Classes (Edit):** search, then the selected class (shown only once you pick one; click it again to clear). Below,
@@ -42,11 +44,11 @@ first, same numbers tagged on the image) sits under it: click one to select it a
 the class's real colour, maps and exports stay as they are, and `Reset` restores it. `Labels` sets the label size
 (10–32 px). Both are remembered in this browser.
 
-1. **Browse (top).** Filter by split, clip, status, confidence, class present or edited. Step with `←`/`→` (or `N`/`P`);
+1. **Filters (top) and the Frame header.** Filter by split, clip, status, confidence, class present or edited. Step with `←`/`→` (or `N`/`P`);
    Next on the last frame goes back to the first, and Prev on the first goes to the last. Tag with `Shift+1` ok, `Shift+2` fix, `Shift+3` drop, `Shift+4` todo, or the buttons.
    `drop` is only a tag; deleting frames is a separate, explicit step.
-2. **Edit.** Corrections are saved **into the master masks**: P-mode PNGs written atomically. **Revert** restores the
-   original pseudo-label.
+2. **Edit.** Corrections are saved **into the master masks**: P-mode PNGs written atomically. **Save** (or `Ctrl+S`) writes them; leaving a frame
+   autosaves. Undo/Redo are `Ctrl+Z`/`Ctrl+Shift+Z`. Reverting to the original pseudo-label is API-only for now.
 3. **Rules.** "Class A → class B" over a filter. Run a dry run first; Apply backs up and logs each frame. The snow → water
    remap is done here.
 4. **Taxonomy.**
@@ -97,13 +99,14 @@ test edits. It cleans up after itself.
   (boundary outline plus label), and a double-tap toggles fit and 4×.
 - **Editing tools:** they work with one finger. A second finger cancels the stroke in progress. In SAM, `− point` makes
   the next taps negative.
-- **On a phone,** Browse starts collapsed, but Prev/Next and the tags stay in its header.
+- **On a phone,** Filters starts collapsed; Prev/Next, the tags and Save stay in the Frame header, and Tools/Protect/View
+  stack above the image.
 
-## Known limits (v26.1.5)
+## Known limits (v26.1.6)
 
 - Touch was tested with Chromium and WebKit emulation (synthetic multi-touch), not yet on a real iPhone.
 - On a 900 px high screen the tab's groups start below the fold. Use the recents (`1`–`9`) or collapse or shrink the
-  image group.
+  Frame group.
 
 - A colour chosen when merging is shown only in the builder. An exported class takes the colour of its first (largest)
   member, as in `HackEye26.1-48.yaml`.

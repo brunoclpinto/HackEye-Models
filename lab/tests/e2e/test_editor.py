@@ -37,9 +37,11 @@ def test_brush_undo_redo_save_revert(page, clean_frame):
     assert after[y, x] == SNOW
     assert int((after != before).sum()) == 1
     assert api(f"/api/frames/{stem}")["status"] == "edited"
-    # revert through the UI (confirm is auto-accepted)
-    page.click(tid("btn-revert"))
-    page.wait_for_function(f"() => window.__lab.getPixel({x}, {y}) === {old}")
+    # revert through the API (v26.1.6 removed the Revert button), then reopen the frame
+    api(f"/api/frames/{stem}/revert", "POST")
+    open_editor(page, stem)
+    page.reload()
+    page.wait_for_function(f"() => window.__lab && window.__lab.state().stem === '{stem}' && window.__lab.getPixel({x}, {y}) === {old}")
     assert (mask_array(stem) == before).all()
     assert api(f"/api/frames/{stem}")["status"] == "todo"
     assert not page.errors

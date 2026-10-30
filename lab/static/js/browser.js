@@ -1,4 +1,4 @@
-// Browse group: filter bar (bound to the URL hash) + one navigation row (Prev, position, Next, tags, count).
+// Filters group (data-gid browse): filter bar (bound to the URL hash) + one navigation row (count; the tags and Prev/Next now live in the Frame header).
 // Navigation wraps (last -> first, first -> last); the wrapping itself lives in editor.step().
 import { api } from "./api.js";
 import { $, el, debounce } from "./util.js";

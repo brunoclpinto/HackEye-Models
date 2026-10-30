@@ -6,8 +6,8 @@ import { S, on, viewColor } from "./store.js";
 import { makeGroup, setCollapsed, stored } from "./groups.js";
 
 export class Picker {
-  constructor(host, protHost, onChange, extraHost = null, onDetection = null) {
-    this.host = host; this.protHost = protHost; this.extraHost = extraHost; this.onChange = onChange; this.onDetection = onDetection;
+  constructor(host, protHost, onChange, onDetection = null) {
+    this.host = host; this.protHost = protHost; this.onChange = onChange; this.onDetection = onDetection;
     this.dets = null; this.detSel = null; this.detAll = false;
     this.active = null; this.secondary = 0; this.protect = -1;
     this.recents = [];
@@ -26,7 +26,6 @@ export class Picker {
 
     this.curBox = el("div", { class: "pk-cur", "data-testid": "active-class", hidden: true }, this.curSw = el("span", { class: "sw big" }), this.curName = el("b"),
       el("button", { class: "pk-x", type: "button", "data-testid": "active-class-clear", title: "Clear the selected class (Esc)", "aria-label": "Clear the selected class", onclick: () => this.setActive(null) }, "\u00d7"));
-    this.secSw = el("span", { class: "sw" }); this.secName = el("span", { class: "muted" });
     this.search = el("input", { "data-testid": "picker-search", type: "search", placeholder: "Search classes (/)", autocomplete: "off" });
     this.search.addEventListener("input", debounce(() => this.filter(), 60));
     this.search.addEventListener("keydown", (e) => {
@@ -37,7 +36,6 @@ export class Picker {
       el("option", { value: "" }, "none"),
       ...[...tax].sort((a, b) => a.name.localeCompare(b.name)).map((c) => el("option", { value: c.id }, `${c.name} (${c.id})`)));
     this.protSel.addEventListener("change", () => { this.protect = this.protSel.value === "" ? -1 : Number(this.protSel.value); this.protSel.blur(); this.onChange?.(); });
-    this.recentsEl = el("div", { class: "pk-recents" });
 
     // Detected: flat list; Undetected: one collapsible group per hier. The chips are built once and moved between them.
     this.det = makeGroup("edit-detected", "Detected", { count: "0" });
@@ -66,9 +64,6 @@ export class Picker {
       this.detEl = el("div", { class: "pk-dets", "data-testid": "detections", hidden: true }),
       el("div", { class: "pk-lists" }, this.det.root, this.undet.root));
     this.protHost.replaceChildren(el("label", { class: "muted" }, "Only change pixels of ", this.protSel));
-    this.extraHost?.replaceChildren(
-      el("span", { class: "pk-cur", title: "Secondary class for the Erase tool (right-click a chip, X swaps)" }, el("span", { class: "muted" }, "Erase to"), this.secSw, this.secName),
-      this.recentsEl);
     this.refresh(); this.partition(); this.renderDets();
   }
   /** counts: {id: {items, px}} for the classes present in the frame (null = nothing known yet). */
@@ -126,23 +121,18 @@ export class Picker {
       kids.push(el("button", { class: "pk-det" + (d.k === this.detSel ? " act" : ""), type: "button", "data-testid": "detection-item", dataset: { k: d.k },
         title: `Select detection #${d.k} and centre on it`, onclick: () => this.onDetection?.(d) }, `#${d.k} ${d.px} px`));
     }
-    if (list.length > LIM) kids.push(el("button", { class: "pk-det more", type: "button", "data-testid": "detections-more", onclick: () => { this.detAll = !this.detAll; this.renderDets(); } },
+    if (list.length > LIM) kids.push(el("button", { class: "pk-det more", type: "button", "data-testid": "detections-more", title: this.detAll ? "Show fewer detections" : "Show all detections", onclick: () => { this.detAll = !this.detAll; this.renderDets(); } },
       this.detAll ? "less" : `+${list.length - LIM} more`));
     box.replaceChildren(...kids);
   }
   focusSearch() { this.search?.focus(); this.search?.select(); }
   refresh() {
-    const a = this.active == null ? null : S.byId.get(this.active), s = S.byId.get(this.secondary);
+    const a = this.active == null ? null : S.byId.get(this.active);
     this.curBox.hidden = !a;
     if (a) { this.curSw.style.background = rgbCss(viewColor(a.id)); this.curName.textContent = `${a.name} (${a.id})`; this.curBox.dataset.id = this.active; }
     else delete this.curBox.dataset.id;
-    if (s) { this.secSw.style.background = rgbCss(viewColor(s.id)); this.secName.textContent = `${s.name} (${s.id})`; }
     for (const [id, it] of this.items) { it.classList.toggle("act", id === this.active); it.classList.toggle("sec", id === this.secondary); }
     this.protSel.value = this.protect >= 0 ? this.protect : "";
-    this.recentsEl.replaceChildren(...this.recents.map((id, i) => {
-      const c = S.byId.get(id);
-      return el("button", { title: `${i + 1}: ${c.name}`, style: { background: rgbCss(viewColor(c.id)) }, onclick: () => this.setActive(id) }, el("i", {}, String(i + 1)));
-    }));
   }
   remember(id) {
     this.recents = [id, ...this.recents.filter((x) => x !== id)].slice(0, 9);

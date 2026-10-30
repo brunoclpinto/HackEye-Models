@@ -33,7 +33,7 @@ export function init() {
     painter.protect = picker.protect;
     if (picker.active !== E.lastActive) { E.lastActive = picker.active; paintRect(0, 0, E.W, E.H); updateDetections(); }     // selected-class-only mask
     syncUI(); redraw();
-  }, $("#ePickerExtra"), selectDetection);
+  }, selectDetection);
   sam = new SamSession(() => { syncUI(); redraw(); });
   new ResizeObserver(() => onResize()).observe($("#eStage"));
   bindToolbar(); bindCanvas();
@@ -661,15 +661,6 @@ export async function save() {
 }
 export async function leave() { return history.dirty ? save() : true; }
 
-async function revert() {
-  if (!E.stem) return;
-  if (!window.confirm(`Revert ${E.stem} to its original mask? Saved edits are discarded.`)) return;
-  try {
-    await api(`/api/frames/${encodeURIComponent(E.stem)}/revert`, { method: "POST" });
-    document.dispatchEvent(new CustomEvent("frame-updated", { detail: { stem: E.stem, status: "todo", edit_count: 0 } }));
-    await show(E.stem, E.qs, { discard: true });
-  } catch { /* toasted */ }
-}
 export async function setStatus(st) {
   if (!E.stem) return;
   try {
@@ -755,16 +746,9 @@ function bindToolbar() {
   });
   $("#eFit").addEventListener("click", fit);
   $("#e11").addEventListener("click", () => zoomAt(E.cw / 2, E.ch / 2, 1));
-  $("#eUndo").addEventListener("click", () => undoRedo(false));
-  $("#eRedo").addEventListener("click", () => undoRedo(true));
   $("#eSave").addEventListener("click", () => save());
-  $("#eRevert").addEventListener("click", revert);
-  $$("#eStatus button").forEach((b) => b.addEventListener("click", () => setStatus(b.dataset.st)));
-  $("#ePrev").addEventListener("click", () => step(-1));
-  $("#eNext").addEventListener("click", () => step(1));
-  $("#eNote").addEventListener("change", (e) => { if (!E.meta) return; E.meta.note = e.target.value; api(`/api/frames/${encodeURIComponent(E.stem)}/state`, { method: "PUT", body: { note: E.meta.note } }).catch(() => {}); });
   initHandle();
-  $("#pane-edit").addEventListener("click", (e) => { if (e.target.closest("button")) e.target.closest("button").blur(); });
+  for (const h of [$("#pane-edit"), $("#eSide")]) h.addEventListener("click", (e) => { if (e.target.closest("button")) e.target.closest("button").blur(); });
 }
 const targetCls = () => (picker?.active != null ? picker.active : E.sel ? E.sel.id : null);
 const hex2 = (n) => n.toString(16).padStart(2, "0");
@@ -786,9 +770,8 @@ function syncUI() {
   $("#eShape").value = E.round ? "round" : "square";
   $("#page-edit").dataset.dirty = String(history.dirty);
   $("#eMask").classList.toggle("on", E.showMask); $("#eOutline").classList.toggle("on", E.outline); $("#eGrid").classList.toggle("on", E.showGrid);
-  $("#eUndo").disabled = !history.canUndo; $("#eRedo").disabled = !history.canRedo;
   $("#eSave").disabled = !history.dirty;
-  $$("#eStatus button").forEach((b) => b.classList.toggle("on", b.dataset.st === E.meta?.status));
+  $$("#bTags button").forEach((b) => b.classList.toggle("on", b.dataset.st === E.meta?.status));
   const m = E.meta;
   const info = $("#eInfo");
   $("#eSamInfo").textContent = E.tool === "sam" ? sam.info : "";
@@ -801,7 +784,6 @@ function syncUI() {
     el("span", { class: "muted" }, m.index != null && m.index >= 0 ? `${m.index + 1} / ${m.total}` : ""),
     el("span", { class: "muted" }, `edits ${m.edit_count ?? 0}`),
     history.dirty ? el("span", { class: "dirty" }, "unsaved") : "");
-  if (document.activeElement !== $("#eNote")) $("#eNote").value = m.note || "";
   syncToolStatus();
 }
 function syncStatus() {

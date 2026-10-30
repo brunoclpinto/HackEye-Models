@@ -13,7 +13,7 @@ const TABS = ["edit", "taxonomy", "rules"];
 const TAGS = { Digit1: "ok", Digit2: "fix", Digit3: "drop", Digit4: "todo" };
 
 const HELP = [
-  ["Frames", [["Left / Right, P / N", "previous / next frame in the Browse filter; wraps around at both ends (autosaves)"], ["Shift+1 2 3 4", "tag ok / fix / drop / todo"]]],
+  ["Frames", [["Left / Right, P / N", "previous / next frame in the Filters selection; wraps around at both ends (autosaves)"], ["Shift+1 2 3 4", "tag ok / fix / drop / todo"]]],
   ["Tools", [["V", "inspect (default): click or tap an item to box it with its class name (a drag pans the zoomed image instead); Esc clears, Enter relabels it to the active class"], ["B", "brush (size 1-64)"], ["E", "erase to secondary class"], ["R", "region relabel (Shift = whole class)"], ["L", "polygon / lasso (Enter or dbl-click closes, Esc cancels)"],
     ["S", "SAM: left/right click = +/- point, drag = box, Tab cycles, Enter applies, Esc clears"], ["[  ]", "brush size"], ["Q", "round / square"], ["X", "swap active and secondary class"]]],
   ["Classes", [["x button / Esc", "clear the selected class (no class: every class is shown; a class: only its mask, numbered detections below)"], ["Detection chip", "select that region and centre on it"], ["1-9", "pick recent class"], ["/", "search classes"], ["Alt+click", "eyedropper (pick class under cursor)"], ["Shift+Alt+click", "protect class under cursor"],
@@ -51,6 +51,7 @@ async function doRoute() {
   if (tabChanged) {
     $$(".pane").forEach((p) => (p.hidden = p.id !== `pane-${r.tab}`));
     editor.setInspectOnly(r.tab !== "edit");
+    $("#eSide").hidden = r.tab !== "edit";          // Tools / Protect / View are edit-only; the stage ResizeObserver re-fits the canvas
     if (prevTab === "taxonomy") taxonomy.hide();
     if (r.tab === "taxonomy") taxonomy.show(); else if (r.tab === "rules") rules.show();
     prevTab = r.tab;

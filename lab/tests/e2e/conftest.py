@@ -12,17 +12,18 @@ Global hook (editor page), `window.__lab`:
   clientToImg(cx, cy)-> {x, y, fx, fy} image pixel (floored) and float image coords under a client point
   getPixel(x, y)     -> base id of the editor's mask grid at that pixel
   state().selection  -> null or {id, px, bbox:[x0,y0,x1,y1] inclusive, label}  (Inspect selection)
-Layout (v26.1.3, one page: Browse group, Image group, then the selected pane directly under #page; tabs Edit | Taxonomy | Rules, default Edit; no Browse tab):
+Layout (v26.1.6, one page: Filters group (gid browse), Frame group (gid image; header holds eInfo, selection label, tags, nav, Save; body = side column
+(Tools, Protect, View; Edit tab only, <= 25% wide) + canvas), then the selected pane (Edit: Classes only) directly under #page; tabs Edit | Taxonomy | Rules):
                     tab-edit tab-taxonomy tab-rules      sam-status (data-available="true|false")
                     group-<id> (every group/sub-group; attr data-collapsed="true|false"; ids browse image edit-classes edit-detected edit-undetected edit-tools
-                    edit-protect edit-view edit-frame tax-classes tax-map tax-save rules-rule rules-result hier-<hier>)
+                    edit-protect edit-view tax-classes tax-map tax-save rules-rule rules-result hier-<hier>)
                     group-toggle (the header button inside a group; the group's own is the first one)
-Browse (always visible):
+Filters + Frame header (always visible):
                     filter-split filter-clip filter-status filter-class (all <select>, option value = filter value; for the class
                     filter the value is the base id)   frame-count (text = total of the current filter)
                     nav-prev nav-next (buttons; wrap: Next on the last frame -> first, Prev on the first -> last)
                     nav-pos (text "i / N", attrs data-index = 1-based position of the current frame in the filter, data-total = N)
-                    tag-ok tag-fix tag-drop tag-todo (buttons: tag the current frame; Shift+1..4 too)
+                    tag-ok tag-fix tag-drop tag-todo (buttons in the Frame header; highlight .on = current status; Shift+1..4 too)
                     Keys: Left/Right (or P/N) step with wrap-around, Shift+1..4 tag
 Editor:             editor-canvas (the display canvas)   editor (root; data-dirty="true|false")
                     tool-inspect (default tool) sam-negative (toggle: next SAM taps are negative)  selection-label (text of the box label)
@@ -30,7 +31,7 @@ Editor:             editor-canvas (the display canvas)   editor (root; data-dirt
                     brush-size (<input>)   brush-shape (<select> values round|square)
                     picker-search (<input>)  picker-item (one per class; attr data-id = base id)  active-class (data-id; hidden unless a class is selected)
                     protect-select (<select>, option value = base id or "" for none)
-                    btn-save  btn-revert (asks window.confirm)  readout (text under the cursor)
+                    btn-save (Frame header, disabled when clean; no Revert/Undo/Redo/note buttons since v26.1.6)  readout (text under the cursor)
 Taxonomy:           class-row (attrs data-id data-custom)   btn-new-class btn-split btn-edit-class btn-delete-class
                     dlg-name (first text input of any dialog)  dlg-hier  dlg-color (<input type=color> or text '#rrggbb')
                     dlg-child-name (one input per child; split dialog starts with 2)  dlg-ok

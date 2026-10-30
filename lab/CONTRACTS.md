@@ -171,23 +171,29 @@ reserved group key `__ignore__` whose members map to 255)
 - `js/browser.js`, `js/editor.js`, `js/tools.js`, `js/history.js`, `js/picker.js`, `js/sam.js`, `js/taxonomy.js`,
   `js/rules.js`.
 
-**Page layout (v26.1.1), one page, top to bottom:**
+**Page layout (v26.1.6), one page, top to bottom:**
 1. A header with the title, the menu tabs Edit | Taxonomy | Rules, and `?`.
-2. **Browse group (permanent; not a tab):**
-   - The filter bar: split, clip, status, conf range, low range, class with min px, edited, sort, reset, and the count.
-   - One navigation row: `← Prev`, the position `i / N` within the filter, `Next →`, and the tag buttons ok, fix, drop and
-     todo for the current frame. There are **no thumbnails**.
+2. **Filters group (permanent; not a tab; `data-gid="browse"`):** the filter bar (split, clip, status, conf range, low
+   range, class with min px, edited, sort, reset) and the frame count in its header. There are **no thumbnails**.
    - **Wrap-around ("carousel"):** Next on the last frame of the filter goes to the first, and Prev on the first goes to
      the last. When `GET /api/frames/{stem}` returns `next`/`prev` as `null`, the frontend fetches `offset=0` or
      `offset=total-1` with the same filter. A one-frame filter stays put, and an empty filter shows "no frames".
-   - The nav row and the tags sit in the group header, so they stay visible when Browse is collapsed; only the filter
-     bar folds away. A filter-only hash change (e.g. Reset) refreshes Prev/Next for the new filter.
-3. **Image group:** the editor canvas for the current frame, shown on **every** tab.
+   - A filter-only hash change (e.g. Reset) refreshes Prev/Next for the new filter.
+3. **Frame group (`data-gid="image"`):** the editor for the current frame, shown on **every** tab.
+   - **Header:** the frame info (`#eInfo`) on the left; on the right the Inspect selection label, the tag segment
+     ok | fix | drop | todo (`#bTags`, the current status highlighted), `← Prev`, the position `i / N` within the filter,
+     `Next →` (wrap-around, below), and **Save** (`btn-save`, primary, disabled when nothing is unsaved). They stay visible
+     when the group is collapsed.
+   - **Body:** a row of the **side column** (`#eSide`: Tools, Protect, View) and the canvas stage. The side column is at
+     most 25% of the row width and shows only on the Edit tab; elsewhere the stage takes the full width (the stage's
+     ResizeObserver re-fits the canvas). At ≤ 600 px it stacks above the stage.
+   - There is no separate Frame sub-group (v26.1.6): no note field, no Undo/Redo or Revert buttons (Undo/Redo stay on the
+     keyboard; Revert stays in the API).
    - Its height is resizable with a drag handle that's remembered; double-click resets it to the viewport height minus
      400 px.
    - When collapsed, the header still shows the stem, status, edits and clip info.
 4. **The selected tab's sub-groups**, directly on the page (v26.1.3 dropped the wrapping Work group):
-   - Edit: Classes · Tools · Protect · View · Frame;
+   - Edit: Classes (full width; Tools, Protect and View are in the Frame side column);
    - Taxonomy: Classes · Map builder · Save;
    - Rules: Rule · Result.
 5. The status bar.
@@ -195,6 +201,10 @@ reserved group key `__ignore__` whose members map to 255)
 **Collapsing:** every group and sub-group, including each hierarchy group in the class picker, collapses from its header.
 The state is kept in `localStorage` per group id, inside try/catch. Picker hierarchy groups (under Undetected) start
 collapsed.
+
+**Hover descriptions (v26.1.6):** every visible button, select, range or colour input, tab link and group toggle has a
+short `title` (what it does, plus the shortcut in parentheses); JS-built controls included. An E2E test checks every
+visible button on each tab.
 
 **No inline scrolling (v26.1.3):** no group or sub-group body has its own vertical scroll area or `max-height`; each takes
 the height of its content and `#page` is the only vertical scroller. On phones the taxonomy table may scroll sideways.
@@ -246,7 +256,8 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
   - **A detection** is a 4-connected region of one class (what Inspect selects), with no minimum size. `js/counts.js`
     labels the grid in one pass (~9 ms for 1280×720) on frame open and after every committed edit, undo and redo. The chip
     tooltip adds `<n> detections, <px> px`.
-  - **Tools sub-group** holds the "Erase to" secondary class and the recents buttons (`#ePickerExtra`).
+  - **No visible secondary or recents list (v26.1.6):** the secondary class shows only as the chip's `sec` style
+    (right-click a chip to set it, `X` swaps); `1`–`9` still pick the recents, which are kept in `localStorage`.
   - **Painting without a class:** brush, region, lasso, SAM apply and Enter relabel change nothing and toast "Pick a class
     first". Erase uses the secondary class; Inspect needs no class.
 - **Protect source class:** a dropdown (none, or a class). When it's set, every tool changes only pixels of that class.
@@ -261,7 +272,7 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
       colour with round joins, plus a ~15% tint of the region.
   - **Label tag** filled with the class colour, above the top-left of the contour extent (inside when there's no room), clamped:
     `<name> · id <id> · <N> px`, plus ` · <merged name>` when view-through-map is on. The text is dark or light by luminance.
-  - The selection also shows in the Image header and the status bar.
+  - The selection also shows in the Frame header and the status bar.
   - It clears on `Esc`, an edit, undo or redo, or a frame change.
   - `Enter` relabels the selection to the active class, respecting protect, as one undoable patch.
 - **Tools (`tools.js`)**, all applied to the grid through `history.record(rect)` beforehand:
@@ -294,14 +305,14 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
   - **Phone width (≤ 430 px):**
     - no horizontal scroll; the filter bar wraps; the nav row stays on one line;
     - the tab's sub-groups and the Detected / Undetected lists stack in one column; tap targets are ≥ 36 px;
-    - Browse starts collapsed, with the nav row still in its header;
+    - Filters starts collapsed; the Frame header wraps and keeps the tags, nav and Save;
     - the image height fits the width.
 - **History (`history.js`):** a per-frame stack of `{x, y, w, h, before, after}` patches, capped at 200. `Ctrl+Z` undoes and
   `Ctrl+Shift+Z` or `Ctrl+Y` redoes.
 - **Saving:**
-  - `Ctrl+S` saves: the grid is encoded to a PNG (canvas with R=G=B=id, A=255), then `PUT`.
+  - `Ctrl+S` or the header **Save** button saves to the master mask file: the grid is encoded to a PNG (canvas with R=G=B=id, A=255), then `PUT`.
   - Leaving the frame autosaves (on `N`/`P` or navigation) when it's dirty.
-  - A "Revert to original" button asks for confirmation.
+  - Revert to the original mask is API-only (`POST /api/frames/{stem}/revert`); the page has no button (v26.1.6).
   - `N`/`P` (or `←`/`→`) move through the filter with wrap-around, and the next two frames' image and mask are preloaded.
 - **View-through-map:** a map selector; when it's set, the overlay is coloured by `preview.lut` and editing still works in
   base ids.

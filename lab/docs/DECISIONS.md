@@ -334,3 +334,40 @@ disabled with neither, the label grows from 13 to 26 px and persists).
 **Known / possible issues:**
 - The override is per browser: the iPhone and the Mac keep separate colours.
 - Plan: [`plans/v26.1.5.md`](plans/v26.1.5.md).
+
+---
+
+## v26.1.6 — Filters, a Frame group with a side column, hover descriptions
+**Prompt (2026-10-30, "go for it").** "add quick description to buttons when hovering; browse group rename to filters.
+move the buttons on the right (that match frame group below image) and add it to image group right side and add a save
+button to it (save will save current changes to file); remove frame group; rename image group to frame; move tools
+protect and view to the left of the new frame group, max occupancy 25%; from tools remove the erase to and history +
+current selection history bit."
+
+**Decisions (Opus):**
+- **Group ids kept** (`browse`, `image`) so stored collapse states and test ids survive the renames.
+- **Frame header:** the tags and Prev/Next moved from the Filters header, plus Save (the existing save: master mask file,
+  originals kept in `lab/orig`). The old Frame sub-group went entirely.
+- **Removed with the Frame sub-group:** the note field, Undo/Redo and Revert buttons. Undo/Redo stay on the keyboard; Revert
+  stays in the API. Mailed the user whether any should come back (default: no).
+- **Side column only on Edit**, since Tools/Protect/View were edit-only; ≤ 600 px stacks it above the image.
+- **"Erase to" and recents removed from the UI only:** right-click still sets the secondary class (chip style), `X` swaps,
+  `1`–`9` pick recents.
+
+**Implementation (Sonnet worker):** `index.html` regrouped; `#eSide` toggled per tab in `app.js`; `editor.js` dropped the
+removed wiring and now highlights the current status on `#bTags`; `picker.js` dropped its extra host; titles added in
+`index.html`, `groups.js` ("Collapse or expand <name>"), `taxonomy.js` and `util.js` dialogs. **Deviation:** three CSS rules
+(a reserved line for the view-colour hint, a full-width colour row, a stable selection label row on phones) so the image
+doesn't move when an item is selected; without them the touch double-tap test failed at phone width.
+
+**Opus review:** screenshots at 1400 px (Edit, Taxonomy) and 390 px (Edit) match the plan. Fix: button blur after a click
+now covers the side column as well as the Edit pane (keyboard shortcuts would otherwise re-press a focused button).
+
+**Result:** 39 unit tests (the 28 in earlier notes counted only `lab/tests`) and 55 E2E tests pass (new `test_layout.py`, 6 tests:
+titles and header contents, Save clean/dirty/written, side column ≤ 25% and left of the canvas, hidden on Taxonomy,
+phone stacking, every visible button titled).
+
+**Known / possible issues:**
+- Notes and Revert are not reachable from the page until the user decides.
+- The side column at 25% of a narrow laptop window wraps its controls onto more lines.
+- Plan: [`plans/v26.1.6.md`](plans/v26.1.6.md).

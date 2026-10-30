@@ -22,6 +22,7 @@ export function bindGroup(root, defCollapsed = false) {
   root.setAttribute("data-testid", `group-${id}`);
   const t = root.querySelector(":scope > .gh .gt");
   t.setAttribute("data-testid", "group-toggle"); t.type = "button";
+  if (!t.title) t.title = `Collapse or expand ${t.textContent.trim()}`;
   const s = stored(id);
   setCollapsed(root, s === null ? defCollapsed : s);
   t.addEventListener("click", () => { setCollapsed(root, root.dataset.collapsed !== "true", true); t.blur(); });
@@ -32,7 +33,7 @@ export function bindAll(host = document) { host.querySelectorAll(".grp[data-gid]
 /** Build a group element. Returns {root, body, head}. */
 export function makeGroup(id, title, { sub = true, extra = null, collapsed = false, count = "" } = {}) {
   const body = el("div", { class: "gb" });
-  const head = el("header", { class: "gh" }, el("button", { class: "gt" }, el("i", { class: "chev" }), el("span", {}, title), count ? el("small", { class: "muted" }, count) : null), extra);
+  const head = el("header", { class: "gh" }, el("button", { class: "gt", title: `Collapse or expand ${title}` }, el("i", { class: "chev" }), el("span", {}, title), count ? el("small", { class: "muted" }, count) : null), extra);
   const root = el("section", { class: `grp${sub ? " sub" : ""}`, dataset: { gid: id } }, head, body);
   bindGroup(root, collapsed);
   return { root, body, head };

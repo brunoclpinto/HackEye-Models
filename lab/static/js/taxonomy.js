@@ -55,7 +55,7 @@ function renderTable() {
     el("thead", {}, el("tr", {}, ...["", "", "id", "name", "hier", "frames", "pixel share", "map group", ""].map((h) => el("th", {}, h)))),
     el("tbody", {}, rows.map((c) => {
       const tr = el("tr", { class: T.checked.has(c.id) ? "chk" : "", title: c.raw_name, "data-testid": "class-row", dataset: { id: c.id, custom: String(!!c.custom) } },
-        el("td", {}, el("input", { type: "checkbox", checked: T.checked.has(c.id), style: { pointerEvents: "none" } })),
+        el("td", {}, el("input", { type: "checkbox", title: "Check this class", checked: T.checked.has(c.id), style: { pointerEvents: "none" } })),
         el("td", {}, el("span", { class: "sw", style: { background: rgbCss(c.color) } })),
         el("td", { class: "mono" }, String(c.id)), el("td", {}, c.name), el("td", { class: "muted" }, c.hier),
         el("td", { class: "num mono" }, String(c.frames ?? 0)), el("td", { class: "num mono" }, pct((c.pixels || 0) / total)),
@@ -82,10 +82,10 @@ function syncButtons() {
 const hiers = () => [...new Set(S.tax.map((c) => c.hier))].sort();
 async function newClass() {
   const v = await dialog("New class", (b) => {
-    const name = el("input", { type: "text", "data-testid": "dlg-name", placeholder: "e.g. Speed bump" }), hier = el("input", { type: "text", "data-testid": "dlg-hier", list: "hierList", value: "object" });
+    const name = el("input", { type: "text", "data-testid": "dlg-name", placeholder: "e.g. Speed bump", title: "Name of the new class" }), hier = el("input", { type: "text", "data-testid": "dlg-hier", list: "hierList", value: "object", title: "Hierarchy group the class is listed under" });
     const dl = el("datalist", { id: "hierList" }, hiers().map((h) => el("option", { value: h })));
-    const color = el("input", { type: "color", "data-testid": "dlg-color", value: "#ff8800" });
-    const parent = el("select", {}, el("option", { value: "" }, "(none)"), [...S.tax].sort((a, c) => a.name.localeCompare(c.name)).map((c) => el("option", { value: c.id }, `${c.name} (${c.id})`)));
+    const color = el("input", { type: "color", "data-testid": "dlg-color", value: "#ff8800", title: "Class colour" });
+    const parent = el("select", { title: "Parent class (the new class is carved out of it)" }, el("option", { value: "" }, "(none)"), [...S.tax].sort((a, c) => a.name.localeCompare(c.name)).map((c) => el("option", { value: c.id }, `${c.name} (${c.id})`)));
     b.append(el("label", {}, "Name", name), el("label", {}, "Hier group", hier, dl), el("label", {}, "Colour", color), el("label", {}, "Parent (optional)", parent));
     return () => { if (!name.value.trim()) { name.focus(); return undefined; } return { name: name.value.trim(), hier: hier.value.trim() || "object", color: hexRgb(color.value), parent: parent.value === "" ? undefined : Number(parent.value) }; };
   }, "Create");
@@ -98,13 +98,13 @@ async function splitClass() {
   const v = await dialog(`Split "${p.name}" into children`, (b) => {
     const rows = el("div", { class: "dlg-body" });
     const add = (n = "", c = p.color) => {
-      const row = el("div", { class: "crow" }, el("input", { type: "text", "data-testid": "dlg-child-name", placeholder: "child name", value: n }), el("input", { type: "color", value: rgbHex(c) }),
-        el("button", { type: "button", onclick: () => row.remove() }, "x"));
+      const row = el("div", { class: "crow" }, el("input", { type: "text", "data-testid": "dlg-child-name", placeholder: "child name", value: n, title: "Name of the child class" }), el("input", { type: "color", value: rgbHex(c), title: "Child class colour" }),
+        el("button", { type: "button", title: "Remove this child", onclick: () => row.remove() }, "x"));
       rows.append(row);
     };
     const jitter = (i) => p.color.map((x, k) => Math.max(0, Math.min(255, x + ((i + k) % 3 - 1) * 40)));
     add("", jitter(0)); add("", jitter(1));
-    b.append(el("p", { class: "hint" }, "Creates custom classes under the parent; no pixels move. Paint them in the editor."), rows, el("button", { type: "button", onclick: () => add("", jitter(rows.children.length)) }, "+ child"));
+    b.append(el("p", { class: "hint" }, "Creates custom classes under the parent; no pixels move. Paint them in the editor."), rows, el("button", { type: "button", title: "Add another child class", onclick: () => add("", jitter(rows.children.length)) }, "+ child"));
     return () => {
       const ch = [...rows.children].map((r) => ({ name: r.children[0].value.trim(), color: hexRgb(r.children[1].value) })).filter((c) => c.name);
       return ch.length ? ch : undefined;
@@ -117,9 +117,9 @@ async function editClass() {
   const c = S.byId.get([...T.checked][0]);
   if (!c?.custom) return;
   const v = await dialog(`Edit ${c.name}`, (b) => {
-    const name = el("input", { type: "text", "data-testid": "dlg-name", value: c.name }), hier = el("input", { type: "text", "data-testid": "dlg-hier", value: c.hier, list: "hierList" });
+    const name = el("input", { type: "text", "data-testid": "dlg-name", value: c.name, title: "Class name" }), hier = el("input", { type: "text", "data-testid": "dlg-hier", value: c.hier, list: "hierList", title: "Hierarchy group" });
     const dl = el("datalist", { id: "hierList" }, hiers().map((h) => el("option", { value: h })));
-    const color = el("input", { type: "color", value: rgbHex(c.color) });
+    const color = el("input", { type: "color", value: rgbHex(c.color), title: "Class colour" });
     b.append(el("label", {}, "Name", name), el("label", {}, "Hier group", hier, dl), el("label", {}, "Colour", color));
     return () => (name.value.trim() ? { name: name.value.trim(), hier: hier.value.trim(), color: hexRgb(color.value) } : undefined);
   }, "Save");
@@ -132,7 +132,7 @@ async function deleteClass() {
   let url = `/api/taxonomy/classes/${c.id}`;
   if ((c.pixels || 0) > 0) {
     const to = await dialog(`Delete ${c.name}: remap ${fmtPx(c.pixels)} px to`, (b) => {
-      const sel = el("select", {}, [...S.tax].filter((k) => k.id !== c.id).sort((a, k) => a.name.localeCompare(k.name)).map((k) => el("option", { value: k.id }, `${k.name} (${k.id})`)));
+      const sel = el("select", { title: "Class that receives this class's pixels" }, [...S.tax].filter((k) => k.id !== c.id).sort((a, k) => a.name.localeCompare(k.name)).map((k) => el("option", { value: k.id }, `${k.name} (${k.id})`)));
       if (c.parent != null) sel.value = c.parent;
       b.append(el("p", { class: "hint" }, "Every pixel of this class is relabelled in all frames (a rule job), then the class is deleted."), el("label", {}, "Remap to", sel));
       return () => Number(sel.value);
@@ -164,8 +164,8 @@ async function mergeChecked() {
   const gRaws = gnames.flatMap((g) => T.groups[g]);
   const first = S.byId.get(ids[0]) ?? S.byRaw.get(gRaws[0]) ?? S.tax[0];
   const v = await dialog(`Merge ${ids.length + gnames.length} item${ids.length + gnames.length > 1 ? "s" : ""}`, (b) => {
-    const name = el("input", { type: "text", "data-testid": "dlg-name", value: ids.length === 1 && !T.selGroups.size ? first.name : "", placeholder: "merged class name" });
-    const color = el("input", { type: "color", "data-testid": "dlg-color", value: rgbHex(first.color) });
+    const name = el("input", { type: "text", "data-testid": "dlg-name", value: ids.length === 1 && !T.selGroups.size ? first.name : "", placeholder: "merged class name", title: "Name of the merged class" });
+    const color = el("input", { type: "color", "data-testid": "dlg-color", value: rgbHex(first.color), title: "Merged class colour" });
     b.append(el("p", { class: "hint" }, [...gnames, ...ids.map((i) => S.byId.get(i).name)].join(", ")), el("label", {}, "Merged name (an existing group name adds to it)", name), el("label", {}, "Colour (display in this builder)", color));
     return () => { const n = name.value.trim(); if (!n || n === IGN) { name.focus(); return undefined; } return { name: n, color: hexRgb(color.value) }; };
   }, "Merge");
@@ -217,12 +217,12 @@ function renderGroups() {
     const color = T.colors[name] || pc?.color || S.byRaw.get(members[0])?.color || [128, 128, 128];
     return el("div", { class: `gcard${isVoid ? " void" : ""}`, "data-testid": "group-card", dataset: { name } },
       el("header", {},
-        !isVoid && el("input", { type: "checkbox", "data-testid": "group-select", checked: T.selGroups.has(name), onchange: (e) => { e.target.checked ? T.selGroups.add(name) : T.selGroups.delete(name); syncButtons(); } }),
+        !isVoid && el("input", { type: "checkbox", "data-testid": "group-select", title: "Select this group for Merge", checked: T.selGroups.has(name), onchange: (e) => { e.target.checked ? T.selGroups.add(name) : T.selGroups.delete(name); syncButtons(); } }),
         el("span", { class: "sw big", style: { background: isVoid ? "repeating-linear-gradient(45deg,#555,#555 4px,#222 4px,#222 8px)" : rgbCss(color) } }),
         el("b", {}, isVoid ? "Void (-> 255 ignore)" : name), el("span", { class: "muted mono" }, `${members.length} class${members.length > 1 ? "es" : ""}${share !== undefined ? " | " + pct(share) : ""}`),
         el("span", { class: "grow" }),
-        !isVoid && el("button", { onclick: () => renameGroup(name) }, "Rename"),
-        !isVoid && el("button", { onclick: () => { T.groups[IGN] = [...(T.groups[IGN] || []), ...members]; delete T.groups[name]; changed(); } }, "Void"),
+        !isVoid && el("button", { title: "Rename this group", onclick: () => renameGroup(name) }, "Rename"),
+        !isVoid && el("button", { title: "Move this group under __ignore__", onclick: () => { T.groups[IGN] = [...(T.groups[IGN] || []), ...members]; delete T.groups[name]; changed(); } }, "Void"),
         el("button", { "data-testid": "group-expand", title: "Return members to their own classes", onclick: () => { delete T.groups[name]; changed(); } }, "Expand")),
       el("div", { class: "chips" }, members.map((m) => el("span", { class: "chip" }, S.byRaw.get(m)?.name ?? m,
         el("button", { title: "Remove from group", onclick: () => { removeEverywhere([m]); changed(); } }, "x")))));
@@ -237,7 +237,7 @@ function renderGroups() {
   $("#tName").placeholder = `HackEye<yy.major.minor>-${pv ? pv.n : "<N>"}`;
 }
 async function renameGroup(old) {
-  const v = await dialog("Rename group", (b) => { const n = el("input", { type: "text", "data-testid": "dlg-name", value: old }); b.append(el("label", {}, "Name", n)); return () => (n.value.trim() && n.value.trim() !== IGN ? n.value.trim() : undefined); });
+  const v = await dialog("Rename group", (b) => { const n = el("input", { type: "text", "data-testid": "dlg-name", value: old, title: "Group name" }); b.append(el("label", {}, "Name", n)); return () => (n.value.trim() && n.value.trim() !== IGN ? n.value.trim() : undefined); });
   if (!v || v === old) return;
   T.groups[v] = [...(T.groups[v] || []), ...T.groups[old]]; delete T.groups[old];
   if (T.colors[old]) { T.colors[v] = T.colors[old]; delete T.colors[old]; }
