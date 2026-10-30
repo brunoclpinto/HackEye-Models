@@ -28,8 +28,8 @@ docker compose stop sam           # frees the GPU; the lab keeps working, with t
 
 ## Workflow
 
-**Layout (one page):** **Filters** sits permanently at the top. Below it is the **Frame** group: its header holds the
-tags (ok, fix, drop, todo), Prev/Next (wraps around) and **Save**; on the Edit tab its left side holds Tools, Protect and
+**Layout (one page):** **Filters** sits permanently at the top. Below it is the **Frame** group: its header holds a note
+field, the tags (ok, fix, drop, todo), **Undo / Redo**, Prev/Next (wraps around) and **Save**; on the Edit tab its left side holds Tools, Protect and
 View (at most a quarter of the width), with the image on the right. Then come the sub-groups of the selected menu tab,
 **Edit | Taxonomy | Rules** (default Edit). Hover any button for a short description. Every group
 collapses from its header, groups never scroll on their own (the page scrolls), and the image height can be dragged.
@@ -99,7 +99,7 @@ test edits. It cleans up after itself.
   (boundary outline plus label), and a double-tap toggles fit and 4×.
 - **Editing tools:** they work with one finger. A second finger cancels the stroke in progress. In SAM, `− point` makes
   the next taps negative.
-- **On a phone,** Filters starts collapsed; Prev/Next, the tags and Save stay in the Frame header, and Tools/Protect/View
+- **On a phone,** Filters starts collapsed; the note, tags, Undo/Redo, Prev/Next and Save stay in the Frame header, and Tools/Protect/View
   stack above the image.
 
 ## Known limits (v26.1.6)

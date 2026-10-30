@@ -368,6 +368,20 @@ titles and header contents, Save clean/dirty/written, side column ≤ 25% and le
 phone stacking, every visible button titled).
 
 **Known / possible issues:**
-- Notes and Revert are not reachable from the page until the user decides.
+- Revert is API-only (the user asked back only for Undo, Redo and notes).
 - The side column at 25% of a narrow laptop window wraps its controls onto more lines.
 - Plan: [`plans/v26.1.6.md`](plans/v26.1.6.md).
+
+**Follow-up (2026-10-30, correction, no version bump).** User: "undo, redo and notes should be present ... add them to the
+frame group navigation portion on the right, adjust as you see fit."
+- The Frame header is now: info · selection label · **note** · tags · **Undo / Redo** · Prev / position / Next · Save.
+  Undo and Redo are disabled when empty; the note saves on change, and Enter or Esc leaves the field.
+- Done directly by Opus (restoring the v26.1.5 wiring); no worker.
+- **Layout fixes found in the screenshot review (1100 / 1400 / 390 px):**
+  - The Tools segment overflowed the side column at 1100 px (SAM was hidden); it now wraps.
+  - The header wraps onto a right-aligned second row on narrow windows, and the frame info no longer gets truncated.
+  - The selection label only fills spare room. Without that, selecting an item wrapped the header and moved the image
+    between the two clicks of a double-click (`test_double_click_toggles_fit_and_4x` caught it).
+- **Result:** 39 unit tests, 57 E2E tests (two new: the Undo/Redo buttons, and the note saving and surviving a reload while
+  typing doesn't trigger shortcuts); two full E2E runs in a row passed.
+- Plan: [`plans/v26.1.6-followup-undo-notes.md`](plans/v26.1.6-followup-undo-notes.md).

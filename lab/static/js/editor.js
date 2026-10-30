@@ -747,6 +747,10 @@ function bindToolbar() {
   $("#eFit").addEventListener("click", fit);
   $("#e11").addEventListener("click", () => zoomAt(E.cw / 2, E.ch / 2, 1));
   $("#eSave").addEventListener("click", () => save());
+  $("#eUndo").addEventListener("click", (e) => { undoRedo(false); e.currentTarget.blur(); });
+  $("#eRedo").addEventListener("click", (e) => { undoRedo(true); e.currentTarget.blur(); });
+  $("#eNote").addEventListener("change", (e) => { if (!E.meta) return; E.meta.note = e.target.value; api(`/api/frames/${encodeURIComponent(E.stem)}/state`, { method: "PUT", body: { note: E.meta.note } }).catch(() => {}); });
+  $("#eNote").addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === "Escape") e.currentTarget.blur(); });
   initHandle();
   for (const h of [$("#pane-edit"), $("#eSide")]) h.addEventListener("click", (e) => { if (e.target.closest("button")) e.target.closest("button").blur(); });
 }
@@ -771,6 +775,7 @@ function syncUI() {
   $("#page-edit").dataset.dirty = String(history.dirty);
   $("#eMask").classList.toggle("on", E.showMask); $("#eOutline").classList.toggle("on", E.outline); $("#eGrid").classList.toggle("on", E.showGrid);
   $("#eSave").disabled = !history.dirty;
+  $("#eUndo").disabled = !history.canUndo; $("#eRedo").disabled = !history.canRedo;
   $$("#bTags button").forEach((b) => b.classList.toggle("on", b.dataset.st === E.meta?.status));
   const m = E.meta;
   const info = $("#eInfo");
@@ -784,6 +789,7 @@ function syncUI() {
     el("span", { class: "muted" }, m.index != null && m.index >= 0 ? `${m.index + 1} / ${m.total}` : ""),
     el("span", { class: "muted" }, `edits ${m.edit_count ?? 0}`),
     history.dirty ? el("span", { class: "dirty" }, "unsaved") : "");
+  if (document.activeElement !== $("#eNote")) $("#eNote").value = m.note || "";
   syncToolStatus();
 }
 function syncStatus() {

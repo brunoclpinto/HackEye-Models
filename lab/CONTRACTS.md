@@ -180,15 +180,18 @@ reserved group key `__ignore__` whose members map to 255)
      `offset=total-1` with the same filter. A one-frame filter stays put, and an empty filter shows "no frames".
    - A filter-only hash change (e.g. Reset) refreshes Prev/Next for the new filter.
 3. **Frame group (`data-gid="image"`):** the editor for the current frame, shown on **every** tab.
-   - **Header:** the frame info (`#eInfo`) on the left; on the right the Inspect selection label, the tag segment
-     ok | fix | drop | todo (`#bTags`, the current status highlighted), `← Prev`, the position `i / N` within the filter,
+   - **Header:** the frame info (`#eInfo`) on the left; on the right the Inspect selection label, the frame **note**
+     (`frame-note`, saved on change, Enter or Esc leaves the field; typing never triggers shortcuts), the tag segment
+     ok | fix | drop | todo (`#bTags`, the current status highlighted), **Undo / Redo** (`btn-undo`, `btn-redo`, disabled
+     when there is nothing to undo or redo), `← Prev`, the position `i / N` within the filter,
      `Next →` (wrap-around, below), and **Save** (`btn-save`, primary, disabled when nothing is unsaved). They stay visible
      when the group is collapsed.
+     The header wraps onto a second, right-aligned row on narrow windows. The selection label only fills spare room
+     (`flex-basis: 0`), so selecting an item never wraps the header or moves the image.
    - **Body:** a row of the **side column** (`#eSide`: Tools, Protect, View) and the canvas stage. The side column is at
      most 25% of the row width and shows only on the Edit tab; elsewhere the stage takes the full width (the stage's
      ResizeObserver re-fits the canvas). At ≤ 600 px it stacks above the stage.
-   - There is no separate Frame sub-group (v26.1.6): no note field, no Undo/Redo or Revert buttons (Undo/Redo stay on the
-     keyboard; Revert stays in the API).
+   - There is no separate Frame sub-group (v26.1.6) and no Revert button (Revert stays in the API).
    - Its height is resizable with a drag handle that's remembered; double-click resets it to the viewport height minus
      400 px.
    - When collapsed, the header still shows the stem, status, edits and clip info.

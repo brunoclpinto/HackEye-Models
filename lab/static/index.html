@@ -48,9 +48,13 @@
       <div id="eInfo" class="info"></div>
       <span class="grow"></span>
       <span id="selLabel" class="sel-label mono" data-testid="selection-label" hidden></span>
+      <input id="eNote" data-testid="frame-note" type="text" placeholder="note" size="18" autocomplete="off" title="Note for this frame (saved when you leave the field)">
       <div class="seg" id="bTags">
         <button data-st="ok" data-testid="tag-ok" title="Tag ok (Shift+1)">ok</button><button data-st="fix" data-testid="tag-fix" title="Tag fix (Shift+2)">fix</button>
         <button data-st="drop" data-testid="tag-drop" title="Tag drop (Shift+3)">drop</button><button data-st="todo" data-testid="tag-todo" title="Tag todo (Shift+4)">todo</button>
+      </div>
+      <div class="seg">
+        <button id="eUndo" data-testid="btn-undo" title="Undo the last edit (Ctrl+Z)">&#8630;<span class="lbl"> Undo</span></button><button id="eRedo" data-testid="btn-redo" title="Redo (Ctrl+Shift+Z or Ctrl+Y)"><span class="lbl">Redo </span>&#8631;</button>
       </div>
       <div class="seg">
         <button id="bPrev" data-testid="nav-prev" title="Previous frame (Left / P); wraps from the first to the last">&larr;<span class="lbl"> Prev</span></button>

@@ -233,7 +233,7 @@ pre.log { margin: 4px 0; padding: 6px; background: var(--bg); border-radius: 5px
 #page-edit .side { flex: 0 1 25%; max-width: 25%; min-width: 0; display: flex; flex-direction: column; gap: 8px; padding: 8px 0 8px 8px; }
 #page-edit .side[hidden] { display: none; }
 #page-edit .side .gb.tools { gap: 6px 8px; }
-#page-edit .side .seg { flex-wrap: wrap; }
+#page-edit .side .seg { flex-wrap: wrap; flex: 0 1 auto; min-width: 0; max-width: 100%; }
 #page-edit .side label, #page-edit .side .vc { min-width: 0; }
 #page-edit .side select { max-width: 100%; }
 .gh #bTags { margin-left: 0; }
@@ -251,3 +251,13 @@ pre.log { margin: 4px 0; padding: 6px; background: var(--bg); border-radius: 5px
 /* the colour hint keeps one line so selecting an item never changes the side column height (stable image position) */
 #eViewColorHint { flex: 1 1 100%; min-height: 1.4em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #eSide .vc { flex: 1 1 100%; }
+/* v26.1.6 follow-up: note + Undo/Redo in the Frame header */
+[data-gid="image"] > .gh { flex-wrap: wrap; row-gap: 4px; }
+@media (min-width: 601px) { [data-gid="image"] > .gh { justify-content: flex-end; } [data-gid="image"] > .gh > .gt { margin-right: auto; } [data-gid="image"] > .gh #eInfo { flex: 0 0 auto; }
+  /* the selection label only fills spare room, so selecting an item never wraps the header (the image must not move) */
+  [data-gid="image"] > .gh #selLabel { flex: 1 1 0; min-width: 0; max-width: none; } }
+.gh #eNote { width: auto; min-width: 70px; max-width: 220px; flex: 1 1 120px; }
+@media (max-width: 600px) {
+  .gh #eNote { flex: 1 1 100%; width: 100%; }
+  #eUndo .lbl, #eRedo .lbl { display: none; }
+}
