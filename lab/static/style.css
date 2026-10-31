@@ -163,7 +163,6 @@ pre.log { margin: 4px 0; padding: 6px; background: var(--bg); border-radius: 5px
 .pk-item { display: inline-flex; gap: 6px; align-items: center; padding: 2px 8px 2px 6px; border: 1px solid var(--border); border-radius: 13px; background: var(--panel); cursor: pointer; user-select: none; font-size: 12px; line-height: 20px; }
 .pk-item:hover { border-color: var(--accent); }
 .pk-item.act { background: color-mix(in srgb, var(--accent) 30%, var(--panel)); border-color: var(--accent); }
-.pk-item.sec { box-shadow: 0 0 0 2px var(--drop); }
 .pk-item .id { color: var(--muted); font-size: 10px; }
 
 /* ---- v26.1.2: Inspect selection label, touch, phone layout ---- */

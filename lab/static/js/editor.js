@@ -23,8 +23,8 @@ const E = {
 };
 function identity() { const a = new Uint8Array(256); for (let i = 0; i < 256; i++) a[i] = i; return a; }
 
-const imgC = document.createElement("canvas"), maskC = document.createElement("canvas");
-let imgCtx, maskCtx, maskImg, mask32, canvas, ctx, picker, sam, raf = 0, strokeRect = null;
+const imgC = document.createElement("canvas"), maskC = document.createElement("canvas"), lineC = document.createElement("canvas");
+let imgCtx, maskCtx, maskImg, mask32, lineCtx, lineImg, line32, gridDrawn = false, canvas, ctx, picker, sam, raf = 0, strokeRect = null;
 
 // ---------------------------------------------------------------- init
 export function init() {
@@ -41,11 +41,12 @@ export function init() {
   window.addEventListener("beforeunload", (e) => { if (history.dirty) { e.preventDefault(); e.returnValue = ""; } });
 }
 window.__lab = {
-  state: () => ({ stem: E.stem, zoom: E.z, vx: E.vx, vy: E.vy, detections: E.detections, tool: E.tool, cls: picker?.active ?? null, classCounts: E.classCounts, classCountMs: E.classCountMs, dirty: history.dirty, labelSize: E.labelSize, labelBox: E.labelBox, samCandidates: sam ? sam.cands.length : 0,
+  state: () => ({ stem: E.stem, zoom: E.z, vx: E.vx, vy: E.vy, detections: E.detections, tool: E.tool, cls: picker?.active ?? null, classCounts: E.classCounts, classCountMs: E.classCountMs, dirty: history.dirty, gridDrawn, eraseTo: eraseId(), outline: E.outline, labelSize: E.labelSize, labelBox: E.labelBox, samCandidates: sam ? sam.cands.length : 0,
     selection: E.sel ? { id: E.sel.id, px: E.sel.n, bbox: [...E.sel.bbox], label: selText(), contours: E.sel.contours.length, edgeLen: E.sel.edgeLen } : null }),
   imgToClient: (x, y) => { const r = canvas.getBoundingClientRect(); return { x: r.left + E.vx + (x + 0.5) * E.z, y: r.top + E.vy + (y + 0.5) * E.z }; },
   clientToImg: (cx, cy) => { const r = canvas.getBoundingClientRect(), fx = (cx - r.left - E.vx) / E.z, fy = (cy - r.top - E.vy) / E.z; return { x: Math.floor(fx), y: Math.floor(fy), fx, fy }; },
   maskPixel: (x, y) => { if (!mask32 || x < 0 || y < 0 || x >= E.W || y >= E.H) return undefined; const v = mask32[y * E.W + x]; return [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, v >>> 24]; },
+  linePixel: (x, y) => { if (!line32 || x < 0 || y < 0 || x >= E.W || y >= E.H) return undefined; const v = line32[y * E.W + x]; return [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, v >>> 24]; },
   getPixel: (x, y) => (E.grid ? E.grid[y * E.W + x] : undefined),
 };
 export const currentStem = () => E.stem;
@@ -63,28 +64,32 @@ function buildLut() {
 function paintRect(rx, ry, rw, rh) {
   if (!E.grid) return;
   const { W, H, grid } = E, vl = E.viewLut, lut = E.lut32, act = picker && picker.active != null ? picker.active : -1;
-  if (E.outline) { rx--; ry--; rw += 2; rh += 2; }
+  if (E.outline) { rx--; ry--; rw += 2; rh += 2; }          // a changed pixel can add or remove a line on its neighbours
   const x0 = Math.max(0, rx), y0 = Math.max(0, ry), x1 = Math.min(W, rx + rw), y1 = Math.min(H, ry + rh);
   if (x1 <= x0 || y1 <= y0) return;
+  const lines = E.outline;
   for (let y = y0; y < y1; y++) {
     let i = y * W + x0;
     for (let x = x0; x < x1; x++, i++) {
       const g = grid[i], d = vl[g];
-      if (act >= 0) {                                          // a class is selected: only its pixels are coloured
-        if (g !== act) { mask32[i] = 0; continue; }
-        if (E.outline) {
-          const e = (x > 0 && vl[grid[i - 1]] !== d) || (x < W - 1 && vl[grid[i + 1]] !== d) || (y > 0 && vl[grid[i - W]] !== d) || (y < H - 1 && vl[grid[i + W]] !== d);
-          mask32[i] = e ? lut[d] : 0;
-        } else mask32[i] = lut[d];
-      } else if (E.outline) {
-        const r = x < W - 1 && vl[grid[i + 1]] !== d, b = y < H - 1 && vl[grid[i + W]] !== d;
-        mask32[i] = r || b ? lut[d] : 0;
-      } else mask32[i] = lut[d];
+      if (act >= 0 && g !== act) { mask32[i] = 0; line32[i] = 0; continue; }   // a class is selected: only its pixels are drawn
+      mask32[i] = lut[d];
+      if (lines) {
+        const e = (x > 0 && vl[grid[i - 1]] !== d) || (x < W - 1 && vl[grid[i + 1]] !== d) || (y > 0 && vl[grid[i - W]] !== d) || (y < H - 1 && vl[grid[i + W]] !== d);
+        line32[i] = e ? lut[d] : 0;
+      } else line32[i] = 0;
     }
   }
   maskCtx.putImageData(maskImg, 0, 0, x0, y0, x1 - x0, y1 - y0);
+  lineCtx.putImageData(lineImg, 0, 0, x0, y0, x1 - x0, y1 - y0);
   redraw();
 }
+function toggleGrid() {
+  E.showGrid = !E.showGrid; syncUI(); redraw();
+  if (E.showGrid && E.z < 4 && !E.gridToast) { E.gridToast = true; toast("Grid shows from 4\u00d7"); }
+}
+/** The class Erase paints: void unlabeled (looked up by raw name), else 255 ignore. */
+function eraseId() { const c = S.tax.find((t) => t.raw_name === "void--unlabeled"); return c ? c.id : 255; }
 
 // ---------------------------------------------------------------- view / drawing
 function onResize() {
@@ -279,19 +284,26 @@ function draw() {
   ctx.setTransform(z * dpr, 0, 0, z * dpr, vx * dpr, vy * dpr);
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(imgC, 0, 0);
-  if (E.showMask) { ctx.globalAlpha = E.outline ? Math.max(E.opacity, 0.85) : E.opacity; ctx.drawImage(maskC, 0, 0); ctx.globalAlpha = 1; }
+  if (E.showMask) { ctx.globalAlpha = E.opacity; ctx.drawImage(maskC, 0, 0); ctx.globalAlpha = 1; }
+  if (E.outline) ctx.drawImage(lineC, 0, 0);
   if (E.tool === "sam" && sam.has) drawHatch();
   if (E.sel && E.selCanvas) ctx.drawImage(E.selCanvas, 0, 0);
   // screen-space overlays
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const sx = (ix) => vx + ix * z, sy = (iy) => vy + iy * z;
-  if (E.showGrid && z >= 8) {
-    ctx.strokeStyle = "rgba(255,255,255,.22)"; ctx.lineWidth = 1; ctx.beginPath();
+  gridDrawn = false;
+  if (E.showGrid && z >= 4) {
+    gridDrawn = true;
     const xa = Math.max(0, Math.floor(-vx / z)), xb = Math.min(E.W, Math.ceil((E.cw - vx) / z));
     const ya = Math.max(0, Math.floor(-vy / z)), yb = Math.min(E.H, Math.ceil((E.ch - vy) / z));
-    for (let x = xa; x <= xb; x++) { const px = Math.round(sx(x)) + 0.5; ctx.moveTo(px, Math.max(0, sy(ya))); ctx.lineTo(px, Math.min(E.ch, sy(yb))); }
-    for (let y = ya; y <= yb; y++) { const py = Math.round(sy(y)) + 0.5; ctx.moveTo(Math.max(0, sx(xa)), py); ctx.lineTo(Math.min(E.cw, sx(xb)), py); }
-    ctx.stroke();
+    const u = 1 / dpr;                                   // one device pixel; each line is drawn dark, then light beside it
+    const pass = (style, off) => {
+      ctx.strokeStyle = style; ctx.lineWidth = u; ctx.beginPath();
+      for (let x = xa; x <= xb; x++) { const px = Math.round(sx(x) * dpr) / dpr + off + u / 2; ctx.moveTo(px, Math.max(0, sy(ya))); ctx.lineTo(px, Math.min(E.ch, sy(yb))); }
+      for (let y = ya; y <= yb; y++) { const py = Math.round(sy(y) * dpr) / dpr + off + u / 2; ctx.moveTo(Math.max(0, sx(xa)), py); ctx.lineTo(Math.min(E.cw, sx(xb)), py); }
+      ctx.stroke();
+    };
+    pass("rgba(0,0,0,.35)", 0); pass("rgba(255,255,255,.35)", u);
   }
   ctx.strokeStyle = "rgba(255,255,255,.4)"; ctx.lineWidth = 1; ctx.strokeRect(sx(0) - 0.5, sy(0) - 0.5, E.W * z + 1, E.H * z + 1);
   if (E.detections) drawTags(sx, sy);
@@ -405,7 +417,7 @@ function onDown(e) {
   if (!inside(p) && E.tool !== "sam" && E.tool !== "polygon") return;
   if (e.button === 0 && e.altKey && inside(p)) { altPick(e, p); return; }
   if (e.button === 0 && (E.tool === "brush" || E.tool === "region") && needClass()) return;
-  const c = E.tool === "erase" ? picker.secondary : picker.active;
+  const c = E.tool === "erase" ? eraseId() : picker.active;
   if (e.button === 0 && (E.tool === "brush" || E.tool === "erase")) {
     E.drag = { kind: "stroke", lx: p.px, ly: p.py, c }; strokeRect = null; painter.protect = picker.protect;
     painter.stamp(p.px, p.py, E.size, E.round, c); flushPaint();
@@ -474,7 +486,7 @@ function onUp(e) {
   try { canvas.releasePointerCapture(e.pointerId); } catch { /* not captured */ }
   if (!d) return;
   E.drag = null; canvas.classList.remove("panning");
-  if (d.kind === "stroke") { if (cancel) rollback(); else endEdit(E.tool === "erase" ? "brush" : E.tool); }
+  if (d.kind === "stroke") { if (cancel) rollback(); else endEdit(E.tool); }
   else if (d.kind === "poly" && d.free) { if (cancel) E.poly = null; else closePoly(); }
   else if (d.kind === "tap") { if (cancel) { /* nothing */ } else if (!d.moved) tap(d); else if (d.touch && !d.region) startFling(velocityOf(d.hist)); }
   else if (d.kind === "sam") {
@@ -608,10 +620,11 @@ export async function show(stem, qs = "", { discard = false } = {}) {
     if (seq !== E.loadSeq) return;
     E.cache.delete(stem);                       // the grid is mutated in place; never reuse it
     E.stem = stem; E.qs = qs; E.meta = meta; E.W = a.W; E.H = a.H; E.grid = a.grid;
-    imgC.width = maskC.width = a.W; imgC.height = maskC.height = a.H;
-    imgCtx = imgC.getContext("2d"); maskCtx = maskC.getContext("2d");
+    imgC.width = maskC.width = lineC.width = a.W; imgC.height = maskC.height = lineC.height = a.H;
+    imgCtx = imgC.getContext("2d"); maskCtx = maskC.getContext("2d"); lineCtx = lineC.getContext("2d");
     imgCtx.drawImage(a.img, 0, 0, a.W, a.H);
     maskImg = maskCtx.createImageData(a.W, a.H); mask32 = new Uint32Array(maskImg.data.buffer);
+    lineImg = lineCtx.createImageData(a.W, a.H); line32 = new Uint32Array(lineImg.data.buffer);
     painter.attach(a.grid, a.W, a.H); painter.protect = picker.protect;
     clearSel(); history.reset(a.grid, a.W, a.H); E.used.clear(); E.poly = null; strokeRect = null;
     sam.setFrame(stem, a.W, a.H);
@@ -728,7 +741,7 @@ function bindToolbar() {
   $("#eOpacity").addEventListener("input", (e) => { E.opacity = Number(e.target.value) / 100; redraw(); });
   $("#eMask").addEventListener("click", () => { E.showMask = !E.showMask; syncUI(); redraw(); });
   $("#eOutline").addEventListener("click", () => { E.outline = !E.outline; syncUI(); paintRect(0, 0, E.W, E.H); });
-  $("#eGrid").addEventListener("click", () => { E.showGrid = !E.showGrid; syncUI(); redraw(); });
+  $("#eGrid").addEventListener("click", toggleGrid);
   $("#eMap").addEventListener("change", (e) => setViewMap(e.target.value));
   $("#eViewColor").addEventListener("input", (e) => {
     const id = targetCls(); if (id == null) return;
@@ -796,7 +809,7 @@ function syncStatus() {
   status.set("zoom", `${E.z.toFixed(E.z < 10 ? 2 : 1)}x`);
   syncToolStatus();
 }
-const syncToolStatus = () => status.set("tool", E.tool === "inspect" && E.sel ? `Inspect: ${selText()}` : E.tool === "sam" && sam.info ? `SAM ${sam.info}` : `${TOOL_NAMES[E.tool]}${E.tool === "brush" || E.tool === "erase" ? " " + E.size + (E.round ? "r" : "s") : ""}${picker?.protect >= 0 ? " | protect " + clsName(picker.protect) : ""}`);
+const syncToolStatus = () => status.set("tool", E.tool === "inspect" && E.sel ? `Inspect: ${selText()}` : E.tool === "sam" && sam.info ? `SAM ${sam.info}` : `${TOOL_NAMES[E.tool]}${E.tool === "brush" || E.tool === "erase" ? " " + E.size + (E.round ? "r" : "s") : ""}${E.tool === "erase" ? " \u2192 void unlabeled" : ""}${picker?.protect >= 0 ? " | protect " + clsName(picker.protect) : ""}`);
 
 // ---------------------------------------------------------------- keyboard
 export function onKeyUp(e) { if (e.key === " " && E.space) { E.space = false; canvas.classList.remove("pan"); redraw(); return true; } return false; }
@@ -825,8 +838,7 @@ export function onKey(e) {
     case "0": E.cw && zoomAt(E.cw / 2, E.ch / 2, 1); return true;
     case "m": E.showMask = !E.showMask; syncUI(); redraw(); return true;
     case "o": E.outline = !E.outline; syncUI(); paintRect(0, 0, E.W, E.H); return true;
-    case "g": E.showGrid = !E.showGrid; syncUI(); redraw(); return true;
-    case "x": picker.swap(); return true;
+    case "g": toggleGrid(); return true;
     case "=": case "+": E.cw && zoomAt(E.cw / 2, E.ch / 2, E.z * 1.5); return true;
     case "-": E.cw && zoomAt(E.cw / 2, E.ch / 2, E.z / 1.5); return true;
     case "n": case "arrowright": step(1); return true;

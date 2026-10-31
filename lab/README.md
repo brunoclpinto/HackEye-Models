@@ -68,11 +68,11 @@ the class's real colour, maps and exports stay as they are, and `Reset` restores
 |---|---|
 | `V` | Inspect (the default tool): click or tap an item to outline its boundary (holes included) with a label (class · id · px); `Esc` clears, `Enter` relabels it to the active class |
 | `Esc` (page) | cancel the lasso / SAM prompt, else clear the Inspect selection, else clear the selected class |
-| `B` / `E` / `R` / `L` / `S` | brush / erase to secondary class / region relabel (Shift: whole class) / polygon-lasso / SAM |
-| `[` `]`, `Q`, `X` | brush size, round or square, swap active and secondary class |
+| `B` / `E` / `R` / `L` / `S` | brush / erase to void unlabeled / region relabel (Shift: whole class) / polygon-lasso / SAM |
+| `[` `]`, `Q` | brush size, round or square |
 | wheel, Ctrl/Cmd+drag (also Space-drag, middle-drag), `F`, `0`, `+` `-` | zoom to the cursor (up to 32×), pan in any tool, fit, 1:1, zoom |
 | Inspect: drag, double-click; touch: drag, pinch, double-tap | pan when zoomed (touch keeps gliding after a swipe), toggle fit and 4× |
-| `M`, `O`, `G` | mask on/off, outline only, pixel grid (from 8×) |
+| `M`, `O`, `G` | colour fill on/off, class outlines on top of the mask, pixel grid (from 4×) |
 | `1`–`9`, `/`, Alt+click, Shift+Alt+click | recent classes, search classes, eyedropper, set the protect class |
 | SAM: click, right-click, drag, `Tab`, `Enter`, `Esc` | positive point, negative point, box, next candidate, apply, clear |
 | `Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`, `Ctrl/Cmd+S` | undo, redo, save (moving to another frame autosaves) |
@@ -102,7 +102,7 @@ test edits. It cleans up after itself.
 - **On a phone,** Filters starts collapsed; the note, tags, Undo/Redo, Prev/Next and Save stay in the Frame header, and Tools/Protect/View
   stack above the image.
 
-## Known limits (v26.1.6)
+## Known limits (v26.1.7)
 
 - Touch was tested with Chromium and WebKit emulation (synthetic multi-touch), not yet on a real iPhone.
 - On a 900 px high screen the tab's groups start below the fold. Use the recents (`1`–`9`) or collapse or shrink the

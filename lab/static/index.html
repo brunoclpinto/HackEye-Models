@@ -72,7 +72,7 @@
             <div class="seg" id="eTools">
               <button data-testid="tool-inspect" data-tool="inspect" title="Inspect: click or tap an item to box it (V)">Inspect</button>
               <button data-testid="tool-brush" data-tool="brush" title="Brush (B)">Brush</button>
-              <button data-testid="tool-erase" data-tool="erase" title="Erase to secondary class (E)">Erase</button>
+              <button data-testid="tool-erase" data-tool="erase" title="Erase to void unlabeled (E)">Erase</button>
               <button data-testid="tool-region" data-tool="region" title="Region relabel (R)">Region</button>
               <button data-testid="tool-polygon" data-tool="polygon" title="Polygon / lasso (L)">Lasso</button>
               <button data-testid="tool-sam" data-tool="sam" title="SAM2 (S)">SAM</button>
@@ -91,9 +91,9 @@
           <header class="gh"><button class="gt"><i class="chev"></i><span>View</span></button></header>
           <div class="gb tools">
             <label title="Overlay opacity">Opacity <input id="eOpacity" title="Overlay opacity" type="range" min="0" max="100" value="55"></label>
-            <button id="eMask" title="Toggle mask (M)">Mask</button>
-            <button id="eOutline" title="Outline mode (O)">Outline</button>
-            <button id="eGrid" title="Pixel grid (G), shown from 8x">Grid</button>
+            <button id="eMask" title="Show or hide the colour fill (M)">Mask</button>
+            <button id="eOutline" title="Class outlines on top of the mask (O)">Outline</button>
+            <button id="eGrid" title="Pixel grid (G), shown from 4x">Grid</button>
             <label>View map <select id="eMap" title="View the mask through a saved class map"><option value="">none</option></select></label>
             <span class="vc">
               <label title="Display-only colour of the target class (selected class, else Inspect selection)">Colour <input id="eViewColor" title="Display-only colour of the target class" data-testid="view-color" type="color" value="#808080"></label>

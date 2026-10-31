@@ -1,6 +1,5 @@
 // Class picker: search + selected class, then two side-by-side sub-groups: Detected (classes in the open frame, flat chips
-// with their detection count) and Undetected (the rest, grouped by hier, collapsed). Recents (digits 1-9), secondary class
-// and protect. No class is active until one is picked.
+// with their detection count) and Undetected (the rest, grouped by hier, collapsed). Recents (digits 1-9) and protect. No class is active until one is picked.
 import { el, rgbCss, debounce } from "./util.js";
 import { S, on, viewColor } from "./store.js";
 import { makeGroup, setCollapsed, stored } from "./groups.js";
@@ -9,7 +8,7 @@ export class Picker {
   constructor(host, protHost, onChange, onDetection = null) {
     this.host = host; this.protHost = protHost; this.onChange = onChange; this.onDetection = onDetection;
     this.dets = null; this.detSel = null; this.detAll = false;
-    this.active = null; this.secondary = 0; this.protect = -1;
+    this.active = null; this.protect = -1;
     this.recents = [];
     try { this.recents = JSON.parse(localStorage.getItem("lab.recents") || "[]"); } catch { /* ignore */ }
     this.items = new Map(); this.groups = new Map(); this.counts = null;
@@ -21,7 +20,6 @@ export class Picker {
     const tax = S.tax;
     if (!tax.length) return;
     if (this.active != null && !S.byId.has(this.active)) this.active = null;
-    if (!S.byId.has(this.secondary)) this.secondary = tax[0].id;
     this.recents = this.recents.filter((id) => S.byId.has(id)).slice(0, 9);
 
     this.curBox = el("div", { class: "pk-cur", "data-testid": "active-class", hidden: true }, this.curSw = el("span", { class: "sw big" }), this.curName = el("b"),
@@ -55,7 +53,6 @@ export class Picker {
       it.dataset.q = `${c.name} ${c.raw_name} ${c.id}`.toLowerCase();
       it._cnt = it.querySelector(".cnt"); it._hier = c.hier; it._c = c;
       it.addEventListener("click", () => { if (this.active === c.id) this.setActive(null); else this.pick(c.id); });
-      it.addEventListener("contextmenu", (e) => { e.preventDefault(); this.setSecondary(c.id); });
       it.addEventListener("dblclick", () => this.setProtect(c.id));
       this.items.set(c.id, it);
     }
@@ -131,7 +128,7 @@ export class Picker {
     this.curBox.hidden = !a;
     if (a) { this.curSw.style.background = rgbCss(viewColor(a.id)); this.curName.textContent = `${a.name} (${a.id})`; this.curBox.dataset.id = this.active; }
     else delete this.curBox.dataset.id;
-    for (const [id, it] of this.items) { it.classList.toggle("act", id === this.active); it.classList.toggle("sec", id === this.secondary); }
+    for (const [id, it] of this.items) { it.classList.toggle("act", id === this.active); }
     this.protSel.value = this.protect >= 0 ? this.protect : "";
   }
   remember(id) {
@@ -140,12 +137,7 @@ export class Picker {
   }
   pick(id) { this.remember(id); this.setActive(id); }
   setActive(id) { if (id !== null && !S.byId.has(id)) return; this.active = id; this.refresh(); this.onChange?.(); }
-  setSecondary(id) { if (!S.byId.has(id)) return; this.secondary = id; this.refresh(); this.onChange?.(); }
   setProtect(id) { this.protect = id; this.refresh(); this.onChange?.(); }
   byDigit(n) { const id = this.recents[n - 1]; if (id !== undefined) this.setActive(id); }
-  swap() {
-    if (this.active == null) this.active = this.secondary; else [this.active, this.secondary] = [this.secondary, this.active];
-    this.refresh(); this.onChange?.();
-  }
 }
-const HELP = "click: paint class (again: clear) - right-click: secondary (Erase) - double-click: protect";
+const HELP = "click: paint class (again: clear) - double-click: protect";

@@ -171,3 +171,22 @@ def test_ignore_group_export_accounting(tmp_path):
     assert dataset_merge.run(src, tmp_path / "dst", mp, tax, "x", ["train"], 1, False)
     out = np.asarray(Image.open(tmp_path / "dst" / "masks" / "train" / "a.png"))
     assert (out == 255).sum() == 33
+
+
+def test_vistas124_names_unique_and_readable():
+    """v26.1.7: every class name is unique and none is a raw Vistas id ('--')."""
+    names = [c.name for c in load_taxonomy_json(REPO / "taxonomies" / "vistas124.json").classes]
+    assert len(names) == len(set(names))
+    assert not [n for n in names if "--" in n]
+
+
+def test_unique_names_collision_rule():
+    import sys
+    sys.path.insert(0, str(REPO / "datasets" / "vistas" / "conversion"))
+    from vistas_config import _short_name, _unique_names
+    raw = {0: "marking--continuous--dashed", 1: "marking-only--continuous--dashed", 2: "construction--flat--road", 3: "a--b--c", 4: "x--b--c"}
+    out = _unique_names(raw, {i: _short_name(r) for i, r in raw.items()})
+    assert out[0] == "marking dashed" and out[1] == "marking-only dashed" and out[2] == "flat road"
+    assert out[3] == "a c" and out[4] == "x c"      # distinct first parts: first + last
+    raw = {0: "a--b--c", 1: "a--x--b--c"}           # short and first + last both collide: all parts
+    assert _unique_names(raw, {i: _short_name(r) for i, r in raw.items()}) == {0: "a b c", 1: "a x b c"}

@@ -60,6 +60,32 @@ def _short_name(raw_name: str) -> str:
     return " ".join(parts[-2:]) if len(parts) >= 2 else raw_name
 
 
+def _unique_names(raw_names: dict[int, str], short_names: dict[int, str]) -> dict[int, str]:
+    """Make the short names unique and readable (never containing '--').
+
+    A colliding name (e.g. 'continuous dashed' for marking-- and marking-only--)
+    becomes first + last part ('marking dashed', 'marking-only dashed'); if that
+    still collides, all parts joined by spaces.
+    """
+    def count(names: dict[int, str]) -> dict[str, int]:
+        c: dict[str, int] = {}
+        for n in names.values():
+            c[n] = c.get(n, 0) + 1
+        return c
+
+    final = dict(short_names)
+    dup = {n for n, k in count(final).items() if k > 1}
+    for cid, n in short_names.items():
+        if n in dup:
+            parts = raw_names[cid].split("--")
+            final[cid] = f"{parts[0]} {parts[-1]}" if len(parts) > 2 else " ".join(parts)
+    dup = {n for n, k in count(final).items() if k > 1}
+    for cid in list(final):
+        if final[cid] in dup:
+            final[cid] = " ".join(raw_names[cid].split("--"))
+    return final
+
+
 def load_taxonomy(config_path: str | Path) -> VistasTaxonomy:
     with open(config_path) as f:
         data = json.load(f)
@@ -78,21 +104,7 @@ def load_taxonomy(config_path: str | Path) -> VistasTaxonomy:
             void_ids.append(cid)
         short_names[cid] = _short_name(entry["name"])
 
-    # Resolve collisions by falling back to the full hierarchical name.
-    seen: dict[str, int] = {}
-    final_names: dict[int, str] = {}
-    collided_first: set[str] = set()
-    for cid, name in short_names.items():
-        if name in seen:
-            collided_first.add(name)
-        else:
-            seen[name] = cid
-
-    for cid, name in short_names.items():
-        if name in collided_first:
-            final_names[cid] = raw_names[cid]
-        else:
-            final_names[cid] = name
+    final_names = _unique_names(raw_names, short_names)
 
     names_list = list(final_names.values())
     if len(set(names_list)) != len(names_list):

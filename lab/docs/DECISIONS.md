@@ -385,3 +385,45 @@ frame group navigation portion on the right, adjust as you see fit."
 - **Result:** 39 unit tests, 57 E2E tests (two new: the Undo/Redo buttons, and the note saving and surviving a reload while
   typing doesn't trigger shortcuts); two full E2E runs in a row passed.
 - Plan: [`plans/v26.1.6-followup-undo-notes.md`](plans/v26.1.6-followup-undo-notes.md).
+
+---
+
+## v26.1.7 — Erase means unlabeled, Outline draws over the mask, a visible Grid, unique class names
+**Prompt (2026-10-31, "go for it").** "out of the blue erase started behaving like brush. outline is adding and removing
+mask. grid no longer works. make sure classes are correctly assigned and names are displayed correctly."
+
+**Findings (Opus):**
+- Erase painted the hidden secondary class, which defaulted to the first taxonomy class (animal bird, id 0), once v26.1.6
+  removed the "Erase to" box. The user's 7 strokes put about 57k px of animal bird on `Chest-center-0001_000000`.
+- Eight classes (ids 35, 45, 50, 54-58) showed raw Vistas names: the short name collided between `marking--` and
+  `marking-only--`, and the collision fallback was the full raw name.
+- Outline replaced the fill with 1 px edges in the same layer, so O looked like removing the mask.
+- The grid only showed from 8× in a faint line, so toggling it at the usual zoom showed nothing.
+
+**Decisions:**
+- **Erase = void unlabeled** (id 123, found by raw name, 255 as fallback). The secondary class, its chip style, chip
+  right-click and `X` are gone. Strokes are logged as `erase` (the server accepts it in `?tool=`).
+- **Outline** is a separate layer over the mask; the opacity slider affects only the fill; same 4-neighbour rule with or
+  without a selected class.
+- **Grid** from 4×, dark + light line pair, one-time toast below 4×.
+- **Names:** collision rule first + last part, then all parts. `vistas124.json` regenerated (names only); the master
+  `taxonomy.json` and yaml patched for those 8 ids, only where the name still equalled the raw name. Released `.pt` models keep
+  their embedded names.
+
+**Implementation (Sonnet worker role, done by the implementing agent):** `editor.js`, `picker.js`, `app.js`, `index.html`,
+`style.css`, `server.py` (`erase` tool), `vistas_config.py`, regenerated names, new `test_erase_outline_grid.py`.
+
+**Repair:** on `Chest-center-0001_000000` all 57,415 px of animal bird (0 before: 0 px in the original) became void
+unlabeled (123) through `PUT /mask?tool=erase`. After: id 0 = 0 px, id 123 = 57,415 px. The traffic-sign brush edit, the `ok`
+tag and the note were kept.
+
+**Result:** 41 unit tests (39 + 2 for names) and 64 E2E tests (57 + 7) pass; two full E2E runs in a row. Screenshots (desktop 1400 px,
+dpr 1 and 2) reviewed: outline off/on and mask off, grid at 4× and 16× with and without outline, after an erase stroke.
+
+**Deviations:** none from the plan. The grid check at dpr 1 and 2 used Chromium screenshots; WebKit was not separately screenshotted.
+
+**Known / possible issues:**
+- Existing `edits` rows from earlier erase strokes stay logged as `brush`.
+- Frames the user already erased on other days (before this fix) were not scanned; only the reported frame was repaired.
+- The grid is two overlaid 1 px lines, so it looks slightly heavy over very dark areas at 4×.
+- Plan: [`plans/v26.1.7.md`](plans/v26.1.7.md).

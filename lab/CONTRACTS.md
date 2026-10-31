@@ -1,4 +1,4 @@
-# Models Lab — contracts (v26.1.5, current rules)
+# Models Lab — contracts (v26.1.7, current rules)
 
 The history, the user's decisions and the reasons behind each rule are in [`docs/DECISIONS.md`](docs/DECISIONS.md). The
 approved plans are in [`docs/plans/`](docs/plans/).
@@ -93,7 +93,7 @@ memory at startup.
 - `GET /api/frames/{stem}/image.jpg`: the file as-is, `Cache-Control: max-age=86400`.
 - `GET /api/frames/{stem}/thumb.jpg`: 320×180 at q80, made on demand and cached.
 - `GET /api/frames/{stem}/mask.png`: an **8-bit single-channel PNG of base ids** (not the palette), `Cache-Control: no-cache`.
-- `PUT /api/frames/{stem}/mask?tool=<brush|region|polygon|sam|mixed>`: the body is a PNG (`image/png`), 1280×720, grayscale or
+- `PUT /api/frames/{stem}/mask?tool=<brush|erase|region|polygon|sam|mixed>`: the body is a PNG (`image/png`), 1280×720, grayscale or
   RGB(A) with R=G=B.
   - Rejected with 422 if: the size is wrong, the channels differ, or an id is not in the taxonomy (255 is allowed).
   - On the first change, the current file is copied to `lab/orig/`.
@@ -228,7 +228,9 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
     (mouse, pen and touch alike); double-click / double-tap toggles fit and 4×. `F` fits, `1:1` (`0`) shows actual pixels.
   - **Selected-class mask:** with no class selected every class is coloured; with one selected only its base-id pixels
     are (the rest transparent), and outline mode outlines only that class. Full repaint on class change.
-  - A pixel grid appears from 8×.
+  - **Grid (v26.1.7):** the pixel grid appears from 4×. Each line is drawn twice, dark `rgba(0,0,0,.35)` then light
+    `rgba(255,255,255,.35)` one device pixel beside it, so it shows over any colour at any devicePixelRatio. Turning Grid
+    on below 4× toasts "Grid shows from 4×" once.
   - **View colour (v26.1.5, display only):** View → `Colour` (`view-color`) recolours the target class (the selected
     class, else the Inspect selection's class; disabled with neither) for this viewer: mask, outline, Inspect outline /
     tint / label, detection tags, hatch, lasso fill and chip swatches. Stored in `localStorage` `lab.viewColors`
@@ -236,8 +238,11 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
     and exports never change, and no API call is made. With a view map on, merged colours are drawn as before.
   - **Label size (v26.1.5):** View → `Labels` (`label-size`, 10–32 px, default 13, `localStorage` `lab.labelSize`)
     sets the Inspect label font; detection tags use round(size × 0.85).
-  - `M` toggles the mask and `O` switches to outline mode, which draws a pixel wherever the class differs from the
-    right or bottom neighbour. An opacity slider sits in the toolbar.
+  - **Mask and Outline (v26.1.7):** `M` shows or hides the colour fill. `O` adds class-boundary lines **on top of** whatever
+    the mask shows and never removes the fill. Lines live in a separate offscreen layer (`lineC`), drawn at full opacity
+    after the mask in the class colour, for every pixel with a 4-neighbour of a different class; with a class selected only
+    that class gets fill and lines. Outline works with Mask off. The opacity slider affects only the fill. Dirty-rect
+    repaints cover the touched rect plus a 1 px border in both layers.
 - **Readout:** x, y, base id and name under the cursor, plus the merged name when view-through-map is on.
 - **Picker (`picker.js`, Edit → Classes):** every class from `/api/taxonomy` as compact chips.
   - **Head:** the search box (`/` focuses it and opens the matching groups), then the active class (swatch and
@@ -259,10 +264,13 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
   - **A detection** is a 4-connected region of one class (what Inspect selects), with no minimum size. `js/counts.js`
     labels the grid in one pass (~9 ms for 1280×720) on frame open and after every committed edit, undo and redo. The chip
     tooltip adds `<n> detections, <px> px`.
-  - **No visible secondary or recents list (v26.1.6):** the secondary class shows only as the chip's `sec` style
-    (right-click a chip to set it, `X` swaps); `1`–`9` still pick the recents, which are kept in `localStorage`.
+  - **No secondary class (v26.1.7):** there is no secondary class, `sec` chip style, `X` swap or chip right-click (the
+    browser's default menu applies). `1`–`9` pick the recents, which are kept in `localStorage`.
+  - **Class names (v26.1.7):** every class name is unique and never contains `--`. `_short_name` takes the last two parts of
+    the raw name; on a collision the name is first + last part (`marking dashed`, `marking-only dashed`), and if that still
+    collides all parts joined by spaces. Test: every name in `taxonomies/vistas124.json` is unique.
   - **Painting without a class:** brush, region, lasso, SAM apply and Enter relabel change nothing and toast "Pick a class
-    first". Erase uses the secondary class; Inspect needs no class.
+    first". Erase needs no class (it paints void unlabeled); Inspect needs no class.
 - **Protect source class:** a dropdown (none, or a class). When it's set, every tool changes only pixels of that class.
   `Shift+Alt+click` sets it from under the cursor.
 - **Inspect (`V`, the default tool; the only tool on the Taxonomy and Rules tabs):**
@@ -281,7 +289,7 @@ dirty), and `Shift+1`–`4` tag the frame ok, fix, drop or todo (matched by `e.c
 - **Tools (`tools.js`)**, all applied to the grid through `history.record(rect)` beforehand:
   - `B` **Brush:** size 1–64 (`[`/`]`), round or square (`Q`). Strokes interpolate between samples with Bresenham.
     A 1 px square paints exactly one pixel.
-  - `E` **Erase to class:** the brush with the "secondary" class (set by right-clicking a picker entry); handy for boundaries.
+  - `E` **Erase:** the brush painting **void unlabeled** (`raw_name` `void--unlabeled`, id 123; falls back to 255 when missing). Void is ignored in training, so erased pixels mean "no label". It needs no active class, respects Protect, and the edit log records it as `erase`. The status bar reads `Erase 8r → void unlabeled`.
   - `R` **Region relabel:** click fills the 4-connected component under the cursor (iterative, typed-array stack).
     Shift-click relabels every pixel of that class.
   - `L` **Polygon/lasso:** clicks add vertices and a drag adds freehand points. Enter or double-click closes; the fill is
@@ -340,7 +348,7 @@ Leaving the tab restores the map chosen under Edit → View.
 **Rules:** from, to, filter, then Dry run, which shows counts and sample thumbnails (clicking one opens it in the image);
 Apply shows job progress.
 
-**Additional keys:** `G` toggles the pixel grid, `X` swaps the active and secondary class, `+`/`-` zoom, and `?` shows every shortcut.
+**Additional keys:** `G` toggles the pixel grid, `+`/`-` zoom, and `?` shows every shortcut.
 **Test hooks:** the `data-testid` attributes listed in `lab/tests/e2e/conftest.py` (v26.1.1 adds `nav-prev`,
 `nav-next`, `nav-pos` with `data-index` and `data-total`, `tag-ok|fix|drop|todo`, `group-<id>` with `data-collapsed`, and
 `group-toggle`; v26.1.2 adds `tool-inspect`, `sam-negative` and `selection-label`, `selection` in `state()`
@@ -350,7 +358,7 @@ Apply shows job progress.
 `__lab.maskPixel(x,y)` → RGBA of the mask layer; v26.1.5 adds `view-color`, `view-color-reset`, `view-color-reset-all`,
 `view-color-hint`, `label-size`, and `labelSize`, `labelBox` ({w, h} of the last Inspect label) in `state()`), `cls` is null with no class,
 and groups `edit-detected` / `edit-undetected`; `group-work` is gone; `tab-browse`, `carousel` and `frame-card` are gone), and `window.__lab` with `state()`,
-`imgToClient(x,y)` and `getPixel(x,y)`. Keep them stable, because the E2E suite depends on them.
+`imgToClient(x,y)` and `getPixel(x,y)`; v26.1.7 adds `__lab.linePixel(x,y)` (RGBA of the outline layer) and `gridDrawn`, `eraseTo`, `outline` in `state()`. Keep them stable, because the E2E suite depends on them.
 **Merge colour:** the colour chosen in the map builder only shows on the card swatch. An exported merged class takes its
 first member's colour, because the map format has no colour field.
 

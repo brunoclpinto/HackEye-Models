@@ -459,7 +459,7 @@
   },
   {
    "id": 35,
-   "name": "marking--continuous--dashed",
+   "name": "marking dashed",
    "raw_name": "marking--continuous--dashed",
    "hier": "marking",
    "color": [
@@ -589,7 +589,7 @@
   },
   {
    "id": 45,
-   "name": "marking--discrete--crosswalk-zebra",
+   "name": "marking crosswalk-zebra",
    "raw_name": "marking--discrete--crosswalk-zebra",
    "hier": "marking",
    "color": [
@@ -654,7 +654,7 @@
   },
   {
    "id": 50,
-   "name": "marking--discrete--other-marking",
+   "name": "marking other-marking",
    "raw_name": "marking--discrete--other-marking",
    "hier": "marking",
    "color": [
@@ -706,7 +706,7 @@
   },
   {
    "id": 54,
-   "name": "marking--discrete--text",
+   "name": "marking text",
    "raw_name": "marking--discrete--text",
    "hier": "marking",
    "color": [
@@ -719,7 +719,7 @@
   },
   {
    "id": 55,
-   "name": "marking-only--continuous--dashed",
+   "name": "marking-only dashed",
    "raw_name": "marking-only--continuous--dashed",
    "hier": "marking-only",
    "color": [
@@ -732,7 +732,7 @@
   },
   {
    "id": 56,
-   "name": "marking-only--discrete--crosswalk-zebra",
+   "name": "marking-only crosswalk-zebra",
    "raw_name": "marking-only--discrete--crosswalk-zebra",
    "hier": "marking-only",
    "color": [
@@ -745,7 +745,7 @@
   },
   {
    "id": 57,
-   "name": "marking-only--discrete--other-marking",
+   "name": "marking-only other-marking",
    "raw_name": "marking-only--discrete--other-marking",
    "hier": "marking-only",
    "color": [
@@ -758,7 +758,7 @@
   },
   {
    "id": 58,
-   "name": "marking-only--discrete--text",
+   "name": "marking-only text",
    "raw_name": "marking-only--discrete--text",
    "hier": "marking-only",
    "color": [

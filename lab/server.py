@@ -22,7 +22,7 @@ from .versioning import check_version
 from .store import SORTS, STATUSES, ApiError, FrameFilter, Store
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
-TOOLS = ("brush", "region", "polygon", "sam", "mixed")
+TOOLS = ("brush", "erase", "region", "polygon", "sam", "mixed")
 
 
 @dataclass
